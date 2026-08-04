@@ -6,7 +6,7 @@ class APIClient {
             if (origin.startsWith('http:') || origin.startsWith('https:')) {
                 this.baseURL = origin;
             } else {
-                this.baseURL = 'https://fieldengineerportal.vercel.app';
+                this.baseURL = 'https://field-engineer-portal.onrender.com';
             }
         } else {
             this.baseURL = baseURL;
