@@ -76,34 +76,38 @@ class FieldPortalApp {
                         <table class="data-table" id="table-metrics-${hs.id}">
                             <thead>
                                 <tr>
-                                    <th>5G Parameters</th>
-                                    <th>4G LTE Parameters</th>
+                                    <th style="color: var(--accent-cyan);">📡 5G Telemetry (gNB / CID / PCI / Band / RSRP)</th>
+                                    <th style="color: var(--accent-violet);">📶 4G LTE Telemetry (eNB / CID / PCI / Band / RSRP)</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td>Band: <span id="cell-${hs.id}-band_5g" class="val-highlight-5g">-</span></td>
-                                    <td>Band: <span id="cell-${hs.id}-band_4g" class="val-highlight-4g">-</span></td>
+                                    <td><strong>gNB:</strong> <span id="cell-${hs.id}-gnb" class="val-highlight-5g" contenteditable="true">-</span></td>
+                                    <td><strong>eNB:</strong> <span id="cell-${hs.id}-enb" class="val-highlight-4g" contenteditable="true">-</span></td>
                                 </tr>
                                 <tr>
-                                    <td>RSRP / RSRQ / SINR: <span id="cell-${hs.id}-rsrp_5g" class="val-highlight-5g">-</span> / <span id="cell-${hs.id}-rsrq_5g">-</span> / <span id="cell-${hs.id}-sinr_5g">-</span></td>
-                                    <td>RSRP / RSRQ / SINR: <span id="cell-${hs.id}-rsrp_4g" class="val-highlight-4g">-</span> / <span id="cell-${hs.id}-rsrq_4g">-</span> / <span id="cell-${hs.id}-sinr_4g">-</span></td>
+                                    <td><strong>CID (Cell ID):</strong> <span id="cell-${hs.id}-cid_5g" class="val-highlight-5g" contenteditable="true">-</span></td>
+                                    <td><strong>CID (Cell ID):</strong> <span id="cell-${hs.id}-cid" class="val-highlight-4g" contenteditable="true">-</span></td>
                                 </tr>
                                 <tr>
-                                    <td>ARFCN / PCI / Cell ID: <span id="cell-${hs.id}-arfcn_5g">-</span> / <span id="cell-${hs.id}-pci_5g" class="val-highlight-5g">-</span> / <span id="cell-${hs.id}-cid_5g">-</span></td>
-                                    <td>ARFCN / PCI / Cell ID: <span id="cell-${hs.id}-arfcn_4g">-</span> / <span id="cell-${hs.id}-pci_4g" class="val-highlight-4g">-</span> / <span id="cell-${hs.id}-cid">-</span></td>
+                                    <td><strong>PCI:</strong> <span id="cell-${hs.id}-pci_5g" class="val-highlight-5g" contenteditable="true">-</span></td>
+                                    <td><strong>PCI:</strong> <span id="cell-${hs.id}-pci_4g" class="val-highlight-4g" contenteditable="true">-</span></td>
                                 </tr>
                                 <tr>
-                                    <td>TAC / MCC-MNC: <span id="cell-${hs.id}-tac_5g">-</span> / <span id="cell-${hs.id}-mcc_mnc_5g">-</span></td>
-                                    <td>TAC / MCC-MNC: <span id="cell-${hs.id}-tac_4g">-</span> / <span id="cell-${hs.id}-mcc_mnc_4g">-</span></td>
+                                    <td><strong>BAND:</strong> <span id="cell-${hs.id}-band_5g" class="val-highlight-5g" contenteditable="true">-</span></td>
+                                    <td><strong>BAND:</strong> <span id="cell-${hs.id}-band_4g" class="val-highlight-4g" contenteditable="true">-</span></td>
                                 </tr>
                                 <tr>
-                                    <td>Download / Upload: <span id="cell-${hs.id}-dl_mb_5g" class="val-highlight-5g">0</span> Mbps DL / <span id="cell-${hs.id}-ul_mb_5g">0</span> Mbps UL</td>
-                                    <td>Download / Upload: <span id="cell-${hs.id}-dl_mb_4g" class="val-highlight-4g">0</span> Mbps DL / <span id="cell-${hs.id}-ul_mb_4g">0</span> Mbps UL</td>
+                                    <td><strong>RSRP:</strong> <span id="cell-${hs.id}-rsrp_5g" class="val-highlight-5g" contenteditable="true">-</span></td>
+                                    <td><strong>RSRP:</strong> <span id="cell-${hs.id}-rsrp_4g" class="val-highlight-4g" contenteditable="true">-</span></td>
                                 </tr>
                                 <tr>
-                                    <td>Ping / Jitter: <span id="cell-${hs.id}-ping_ms_5g">-</span> ms / <span id="cell-${hs.id}-jitter_ms_5g">-</span> ms</td>
-                                    <td>Ping / Jitter: <span id="cell-${hs.id}-ping_ms_4g">-</span> ms / <span id="cell-${hs.id}-jitter_ms_4g">-</span> ms</td>
+                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">RSRQ / SINR: <span id="cell-${hs.id}-rsrq_5g">-</span> / <span id="cell-${hs.id}-sinr_5g">-</span></td>
+                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">RSRQ / SINR: <span id="cell-${hs.id}-rsrq_4g">-</span> / <span id="cell-${hs.id}-sinr_4g">-</span></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">DL / UL Speed: <span id="cell-${hs.id}-dl_mb_5g">0</span> Mbps / <span id="cell-${hs.id}-ul_mb_5g">0</span> Mbps</td>
+                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">DL / UL Speed: <span id="cell-${hs.id}-dl_mb_4g">0</span> Mbps / <span id="cell-${hs.id}-ul_mb_4g">0</span> Mbps</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -462,33 +466,26 @@ class FieldPortalApp {
                 };
 
                 // Populate 5G Extracted Telemetry
-                updateCell('band_5g', m.band_5g);
+                updateCell('gnb', m.gnb);
+                updateCell('cid_5g', m.cid_5g);
                 updateCell('pci_5g', m.pci_5g);
+                updateCell('band_5g', m.band_5g);
                 updateCell('rsrp_5g', m.rsrp_5g, ' dBm');
                 updateCell('rsrq_5g', m.rsrq_5g, ' dB');
                 updateCell('sinr_5g', m.sinr_5g, ' dB');
-                updateCell('arfcn_5g', m.arfcn_5g);
-                updateCell('cid_5g', m.cid_5g || m.gnb);
-                updateCell('tac_5g', m.tac_5g);
-                updateCell('mcc_mnc_5g', m.mcc_mnc_5g);
                 updateCell('dl_mb_5g', m.dl_mb_5g);
                 updateCell('ul_mb_5g', m.ul_mb_5g);
-                updateCell('ping_ms_5g', m.ping_ms_5g);
-                updateCell('jitter_ms_5g', m.jitter_ms_5g);
 
                 // Populate 4G Extracted Telemetry
-                updateCell('band_4g', m.band_4g);
+                updateCell('enb', m.enb);
+                updateCell('cid', m.cid);
                 updateCell('pci_4g', m.pci_4g);
+                updateCell('band_4g', m.band_4g);
                 updateCell('rsrp_4g', m.rsrp_4g, ' dBm');
                 updateCell('rsrq_4g', m.rsrq_4g, ' dB');
                 updateCell('sinr_4g', m.sinr_4g, ' dB');
-                updateCell('arfcn_4g', m.arfcn_4g);
-                updateCell('cid', m.cid || m.enb);
-                updateCell('tac_4g', m.tac_4g);
-                updateCell('mcc_mnc_4g', m.mcc_mnc_4g);
                 updateCell('dl_mb_4g', m.dl_mb_4g);
                 updateCell('ul_mb_4g', m.ul_mb_4g);
-                updateCell('ping_ms_4g', m.ping_ms_4g);
                 updateCell('jitter_ms_4g', m.jitter_ms_4g);
 
                 const statusSpan = document.getElementById(`save-status-${hsId}`);

@@ -52,12 +52,11 @@ class VisionExtractorService:
             client = openai.OpenAI(api_key=self.openai_key)
             
             system_prompt = (
-                "You are an expert OCR & Telecom Telemetry Extractor. You will receive an array of images for a network test section "
-                "containing both a G-NetTrack Pro telemetry screenshot and a Speedtest result screenshot. "
-                "Extract all available parameters across ALL provided images into a structured JSON format with fields: "
-                "band_5g, rsrp_5g, rsrq_5g, sinr_5g, arfcn_5g, pci_5g, gnb, cid_5g, tac_5g, mcc_mnc_5g, dl_mb_5g, ul_mb_5g, ping_ms_5g, jitter_ms_5g, "
-                "band_4g, rsrp_4g, rsrq_4g, sinr_4g, arfcn_4g, pci_4g, enb, cid, tac_4g, mcc_mnc_4g, dl_mb_4g, ul_mb_4g, ping_ms_4g, jitter_ms_4g. "
-                "If parameters are spread across multiple images, combine them accurately. Return ONLY valid JSON."
+                "You are an expert Telecom Telemetry OCR Extractor for G-NetTrack and Speedtest screenshots. "
+                "Analyze the provided mobile telemetry images carefully. "
+                "If the image shows 4G LTE (e.g. Airtel 4G): Extract operator, enb, cid, pci_4g, band_4g, rsrp_4g, dl_mb_4g, ul_mb_4g. "
+                "If the image shows 5G NR (e.g. Airtel 5G): Extract operator, gnb, cid_5g, pci_5g, band_5g, rsrp_5g, dl_mb_5g, ul_mb_5g. "
+                "Ensure exact numeric extraction for eNB, gNB, CID, PCI, Band, and RSRP. Return ONLY valid JSON."
             )
 
             messages = [{"role": "system", "content": system_prompt}]
