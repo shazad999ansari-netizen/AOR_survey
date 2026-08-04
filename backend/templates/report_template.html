@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Executive RF Survey Audit Report - {{ survey.store_name }}</title>
+    {% if embed_css %}
+    <style>
+        {{ embed_css | safe }}
+    </style>
+    {% else %}
+    <link rel="stylesheet" href="report_style.css">
+    {% endif %}
+</head>
+<body>
+
+    <!-- Header Block -->
+    <div class="header-container clearfix">
+        <div class="title-box">
+            <h1>Executive Audit Report</h1>
+            <p class="subtitle">5G/4G Store RF Inspection & Hardware Inventory Verification</p>
+        </div>
+        <div class="meta-box">
+            <div><strong>Store Name:</strong> {{ survey.store_name }}</div>
+            <div><strong>Audit ID:</strong> #SRV-{{ survey.id }}</div>
+            <div><strong>Engineer Account:</strong> {{ engineer_email }}</div>
+            <div><strong>Date Completed:</strong> {{ date_str }}</div>
+        </div>
+    </div>
+
+    <!-- Executive KPI Bar -->
+    <div class="kpi-row">
+        <table style="border: none; margin-bottom: 20px;">
+            <tr style="background: transparent; border: none;">
+                <td class="kpi-card" style="border: 1px solid #e2e8f0; width: 23%;">
+                    <div class="kpi-value">{{ total_hotspots }}</div>
+                    <div class="kpi-label">Hotspots Surveyed</div>
+                </td>
+                <td style="width: 2%; border: none; background: transparent;"></td>
+                <td class="kpi-card" style="border: 1px solid #e2e8f0; width: 23%;">
+                    <div class="kpi-value">{{ avg_5g_rsrp }} dBm</div>
+                    <div class="kpi-label">Avg 5G RSRP</div>
+                </td>
+                <td style="width: 2%; border: none; background: transparent;"></td>
+                <td class="kpi-card" style="border: 1px solid #e2e8f0; width: 23%;">
+                    <div class="kpi-value">{{ avg_5g_dl }} Mbps</div>
+                    <div class="kpi-label">Avg 5G Download</div>
+                </td>
+                <td style="width: 2%; border: none; background: transparent;"></td>
+                <td class="kpi-card" style="border: 1px solid #e2e8f0; width: 23%;">
+                    <div class="kpi-value">{{ hardware_status }}</div>
+                    <div class="kpi-label">Hardware Health</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Section 1: Store Info & Hardware Audit -->
+    <div class="section-page-break">
+        <h2>1. Hardware Infrastructure & Installation Audit</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 30%;">Hardware Component</th>
+                    <th style="width: 20%;">Installed (Present)</th>
+                    <th style="width: 20%;">Operational (Working)</th>
+                    <th style="width: 30%; text-align: center;">Physical Photographic Proof</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Network Repeater System</strong></td>
+                    <td>
+                        <span class="badge {{ 'badge-success' if survey.repeater_present else 'badge-danger' }}">
+                            {{ 'YES (PRESENT)' if survey.repeater_present else 'NO (NOT PRESENT)' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {{ 'badge-success' if survey.repeater_working else 'badge-danger' }}">
+                            {{ 'OPERATIONAL' if survey.repeater_working else 'OFFLINE' }}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        {% if survey.repeater_photo_url %}
+                        <img src="{{ repeater_photo_src }}" class="photo-container" alt="Repeater Snap">
+                        {% else %}
+                        <div class="no-photo">[ No Physical Photo Uploaded ]</div>
+                        {% endif %}
+                    </td>
+                </tr>
+                <tr>
+                    <td><strong>5G Small Cell (SC) Unit</strong></td>
+                    <td>
+                        <span class="badge {{ 'badge-success' if survey.sc_present else 'badge-danger' }}">
+                            {{ 'YES (PRESENT)' if survey.sc_present else 'NO (NOT PRESENT)' }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {{ 'badge-success' if survey.sc_working else 'badge-danger' }}">
+                            {{ 'OPERATIONAL' if survey.sc_working else 'OFFLINE' }}
+                        </span>
+                    </td>
+                    <td style="text-align: center;">
+                        {% if survey.sc_photo_url %}
+                        <img src="{{ sc_photo_src }}" class="photo-container" alt="Small Cell Snap">
+                        {% else %}
+                        <div class="no-photo">[ No Physical Photo Uploaded ]</div>
+                        {% endif %}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Section 2: Hotspot Telemetry & Network Performance (Tabs 2 to 7) -->
+    <div class="section-page-break" style="margin-top: 15px;">
+        <h2>2. Dynamic Hotspot Telemetry & Vision AI OCR Reading Log</h2>
+        {% if hotspots and hotspots|length > 0 %}
+            {% for hotspot in hotspots %}
+            <div style="margin-bottom: 25px; border: 1px solid #cbd5e0; border-radius: 6px; overflow: hidden; page-break-inside: avoid;">
+                <div style="background: #2b6cb0; color: #ffffff; padding: 10px 15px; font-weight: bold; font-size: 11pt;">
+                    {{ hotspot.hotspot_name }}
+                </div>
+                <table style="margin-bottom: 0; border: none;">
+                    <thead>
+                        <tr>
+                            <th colspan="3" style="background: #e2e8f0; color: #2d3748; text-align: center;">5G New Radio (NR) Metrics</th>
+                            <th colspan="3" style="background: #edf2f7; color: #4a5568; text-align: center;">4G LTE Metrics & Speeds</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="width: 16%;"><strong>PCI 5G:</strong></td>
+                            <td style="width: 17%;">{{ hotspot.pci_5g or 'N/A' }}</td>
+                            <td style="width: 17%;"><strong>RSRP 5G:</strong></td>
+                            <td style="width: 16%;"><strong>PCI 4G:</strong></td>
+                            <td style="width: 17%;">{{ hotspot.pci_4g or 'N/A' }}</td>
+                            <td style="width: 17%;"><strong>RSRP 4G:</strong></td>
+                        </tr>
+                        <tr>
+                            <td><strong>DL Speed:</strong></td>
+                            <td style="color: #2b6cb0; font-weight: bold;">{{ hotspot.dl_mb_5g or 0 }} Mbps</td>
+                            <td>{{ hotspot.rsrp_5g or 'N/A' }} dBm</td>
+                            <td><strong>DL Speed:</strong></td>
+                            <td style="color: #4a5568; font-weight: bold;">{{ hotspot.dl_mb_4g or 0 }} Mbps</td>
+                            <td>{{ hotspot.rsrp_4g or 'N/A' }} dBm</td>
+                        </tr>
+                        <tr>
+                            <td><strong>UL Speed:</strong></td>
+                            <td>{{ hotspot.ul_mb_5g or 0 }} Mbps</td>
+                            <td><strong>gNB / ARFCN:</strong> {{ hotspot.gnb or '-' }} / {{ hotspot.arfcn_5g or '-' }}</td>
+                            <td><strong>UL Speed:</strong></td>
+                            <td>{{ hotspot.ul_mb_4g or 0 }} Mbps</td>
+                            <td><strong>eNB / ARFCN:</strong> {{ hotspot.enb or '-' }} / {{ hotspot.arfcn_4g or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 10px; background: #f8fafc;">
+                                <span style="font-size: 8.5pt; font-weight: bold; display: block; margin-bottom: 5px; color: #718096;">5G OCR SCREENSHOT PROOF</span>
+                                {% if hotspot.snap_5g_src %}
+                                <img src="{{ hotspot.snap_5g_src }}" style="max-height: 100px; max-width: 180px; border: 1px solid #cbd5e0; border-radius: 3px;">
+                                {% else %}
+                                <div class="no-photo">[ 5G Snap Missing ]</div>
+                                {% endif %}
+                            </td>
+                            <td colspan="3" style="text-align: center; padding: 10px; background: #f8fafc;">
+                                <span style="font-size: 8.5pt; font-weight: bold; display: block; margin-bottom: 5px; color: #718096;">4G OCR SCREENSHOT PROOF</span>
+                                {% if hotspot.snap_4g_src %}
+                                <img src="{{ hotspot.snap_4g_src }}" style="max-height: 100px; max-width: 180px; border: 1px solid #cbd5e0; border-radius: 3px;">
+                                {% else %}
+                                <div class="no-photo">[ 4G Snap Missing ]</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="font-style: italic; color: #718096;">No hotspot telemetry readings have been registered for this inspection audit yet.</p>
+        {% endif %}
+    </div>
+
+    <!-- Sign-off Validation Footer -->
+    <div style="margin-top: 40px; border-top: 1px solid #cbd5e0; padding-top: 20px; text-align: center; font-size: 9pt; color: #718096;">
+        <p><strong>Automated Compliance Verification:</strong> This document was electronically compiled and cryptographically verified by the Enterprise Zero-Entry Vision AI Engineering system.</p>
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,24 @@
+{
+  "name": "Enterprise 5G/4G Field Engineer Portal",
+  "short_name": "FieldPortal",
+  "description": "Mobile-First Field Engineer Portal for 5G/4G Store Inspections, RF Surveys, and Hardware Audits with Vision AI OCR.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c1017",
+  "theme_color": "#0c1017",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

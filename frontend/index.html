@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0c1017">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW reg error:', err));
+            });
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Sticky Mobile App Bar -->
+    <header class="glass-header">
+        <div class="brand-logo">
+            <div class="brand-icon">⚡</div>
+            <span class="brand-text">Field Portal</span>
+        </div>
+        <div class="nav-actions view-hidden" id="nav-actions-auth">
+            <div class="user-pill">
+                <span id="user-display-mobile">+18005550199</span>
+                <span class="role-badge" id="user-role-badge">ENGINEER</span>
+            </div>
+            <button class="btn btn-secondary btn-sm view-hidden" id="btn-toggle-dashboard">
+                📊 Admin
+            </button>
+            <button class="btn btn-secondary btn-sm" id="btn-logout">
+                Sign Out
+            </button>
+        </div>
+    </header>
+
+    <div class="toast-container" id="toast-center"></div>
+
+    <main class="main-content">
+
+        <!-- 1. MOBILE NUMBER + OTP AUTHENTICATION SCREEN -->
+        <section id="auth-view" class="auth-container">
+            <div class="glass-panel auth-box">
+                <div id="otp-step-1">
+                    <h2 style="font-size: 1.6rem; margin-bottom: 0.5rem; text-align: center;">Mobile Number Sign-In</h2>
+                    <p style="color: var(--text-secondary); text-align: center; font-size: 0.85rem; margin-bottom: 1.75rem;">
+                        Authentication via Azure Communication Services SMS
+                    </p>
+
+                    <div class="form-group">
+                        <label class="form-label" for="auth-mobile">Mobile Phone Number</label>
+                        <input type="tel" id="auth-mobile" class="form-input" placeholder="e.g. +917738079919 or 9876543210" value="+917738079919">
+                    </div>
+
+                    <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="btn-send-otp" onclick="app.requestOTP()">
+                        📲 Request 6-Digit OTP Code
+                    </button>
+                </div>
+
+                <div id="otp-step-2" class="view-hidden">
+                    <h2 style="font-size: 1.5rem; margin-bottom: 0.4rem; text-align: center;">Enter 6-Digit Verification Code</h2>
+                    <p style="color: var(--text-secondary); text-align: center; font-size: 0.85rem; margin-bottom: 1rem;">
+                        Sent to <strong id="display-otp-mobile" style="color: var(--accent-cyan);">+18005550199</strong>
+                    </p>
+
+                    <div class="otp-grid">
+                        <input type="text" maxlength="1" class="otp-field" id="otp-1" inputmode="numeric">
+                        <input type="text" maxlength="1" class="otp-field" id="otp-2" inputmode="numeric">
+                        <input type="text" maxlength="1" class="otp-field" id="otp-3" inputmode="numeric">
+                        <input type="text" maxlength="1" class="otp-field" id="otp-4" inputmode="numeric">
+                        <input type="text" maxlength="1" class="otp-field" id="otp-5" inputmode="numeric">
+                        <input type="text" maxlength="1" class="otp-field" id="otp-6" inputmode="numeric">
+                    </div>
+
+                    <div style="text-align: center; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+                        OTP Expires in: <span id="otp-timer" style="color: var(--accent-cyan); font-weight: 700;">05:00</span>
+                    </div>
+
+                    <button type="button" class="btn btn-primary" style="width: 100%;" id="btn-verify-otp" onclick="app.verifyOTP()">
+                        🔐 Verify OTP & Access Field Portal
+                    </button>
+
+                    <div style="margin-top: 1.25rem; text-align: center;">
+                        <a href="#" onclick="app.resetOTPStep(); return false;" style="color: var(--text-secondary); font-size: 0.85rem; text-decoration: none;">Change Mobile Number</a>
+                    </div>
+                </div>
+
+                <!-- Instant Demo Account Buttons -->
+                <div style="margin-top: 1.75rem; background: hsla(222, 35%, 20%, 0.4); padding: 1rem; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 8px;">Quick Test Mobile Accounts</div>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button type="button" class="btn btn-secondary btn-sm" style="border-color: var(--accent-cyan);" onclick="app.fillDemo('+917738079919')">👑 Owner (+917738079919)</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="app.fillDemo('+18005550199')">⚡ Field Engineer (+18005550199)</button>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="app.fillDemo('+18005550999')">👑 Test Admin (+18005550999)</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. FIELD ENGINEER MOBILE SURVEY VIEW -->
+        <section id="survey-view" class="view-hidden">
+            <div class="glass-panel" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem; background: linear-gradient(90deg, hsla(222, 35%, 14%, 0.9) 0%, hsla(190, 95%, 48%, 0.15) 100%); display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--accent-cyan); font-weight: 700; text-transform: uppercase;">Active Mobile Survey</span>
+                    <h3 id="current-store-title" style="font-size: 1.2rem; margin-top: 2px;">Store: Not Started</h3>
+                </div>
+                <div>
+                    <span id="survey-id-badge" style="background: var(--bg-surface); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; border: 1px solid var(--border-glass);">No ID</span>
+                </div>
+            </div>
+
+            <!-- Touch Mobile Tab Bar -->
+            <div class="tabs-wrapper">
+                <div class="tabs-container">
+                    <button class="tab-btn active" data-tab="tab-1">📋 1. Store & HW</button>
+                    <button class="tab-btn" data-tab="tab-2">📡 2. Gate Left</button>
+                    <button class="tab-btn" data-tab="tab-3">📡 3. Gate Right</button>
+                    <button class="tab-btn" data-tab="tab-4">📡 4. Centre</button>
+                    <button class="tab-btn" data-tab="tab-5">📡 5. Reception</button>
+                    <button class="tab-btn" data-tab="tab-6">📡 6. Back Office</button>
+                    <button class="tab-btn" data-tab="tab-7">📡 7. Back Corner</button>
+                    <button class="tab-btn" data-tab="tab-8">🏆 8. PDF Export</button>
+                </div>
+            </div>
+
+            <!-- TAB 1: STORE INFO & HARDWARE AUDIT -->
+            <div id="tab-1" class="tab-content active glass-panel" style="padding: 1.5rem;">
+                <h3 style="font-size: 1.3rem; margin-bottom: 0.4rem;">Store Metadata & Hardware Inventory</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem; font-size: 0.85rem;">Enter store site location and verify physical repeating & small cell hardware status.</p>
+
+                <div class="form-group">
+                    <label class="form-label" for="store-name-input">Store Name / Site ID</label>
+                    <input type="text" id="store-name-input" class="form-input" placeholder="e.g. AOR MUAR-6090 Seawood" value="AOR MUAR-6090 Seawood">
+                </div>
+
+                <div class="hardware-grid">
+                    <!-- Repeater Card -->
+                    <div class="glass-panel hardware-card">
+                        <h4 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent-cyan);">📡 Network Repeater</h4>
+                        
+                        <div class="toggle-row">
+                            <span style="font-weight: 500; font-size: 0.9rem;">Repeater Present</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-rep-present" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-row">
+                            <span style="font-weight: 500; font-size: 0.9rem;">Repeater Working</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-rep-working" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label class="form-label">Physical Photo Proof</label>
+                            <div class="dropzone-box" id="drop-repeater" onclick="document.getElementById('file-rep').click();">
+                                <div class="dropzone-icon">📷</div>
+                                <div style="font-weight: 600; font-size: 0.9rem;">Take / Select Repeater Snap</div>
+                                <img src="" id="thumb-repeater" class="thumb-preview" alt="Repeater Preview">
+                                <input type="file" id="file-rep" accept="image/*" capture="environment" style="display: none;" onchange="app.handlePhotoUpload(this, 'repeater')">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5G Small Cell Card -->
+                    <div class="glass-panel hardware-card" style="border-left-color: var(--accent-violet);">
+                        <h4 style="font-size: 1.1rem; margin-bottom: 1rem; color: var(--accent-violet);">⚡ 5G Small Cell</h4>
+                        
+                        <div class="toggle-row">
+                            <span style="font-weight: 500; font-size: 0.9rem;">5G Small Cell Present</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-sc-present" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="toggle-row">
+                            <span style="font-weight: 500; font-size: 0.9rem;">5G Small Cell Working</span>
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-sc-working" checked>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 1rem;">
+                            <label class="form-label">Physical Photo Proof</label>
+                            <div class="dropzone-box" id="drop-sc" onclick="document.getElementById('file-sc').click();">
+                                <div class="dropzone-icon">📷</div>
+                                <div style="font-weight: 600; font-size: 0.9rem;">Take / Select Small Cell Snap</div>
+                                <img src="" id="thumb-sc" class="thumb-preview" alt="Small Cell Preview">
+                                <input type="file" id="file-sc" accept="image/*" capture="environment" style="display: none;" onchange="app.handlePhotoUpload(this, 'sc')">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 2rem;">
+                    <button class="btn btn-primary" id="btn-save-tab-1" onclick="app.saveStoreHardwareAudit()">
+                        💾 Save Hardware Audit & Proceed ➔
+                    </button>
+                </div>
+            </div>
+
+            <div id="hotspots-container-block"></div>
+
+            <!-- TAB 8: FINAL PREVIEW & EXECUTIVE PDF EXPORT -->
+            <div id="tab-8" class="tab-content glass-panel" style="padding: 1.5rem;">
+                <div style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 1rem;">
+                    <span style="color: var(--accent-cyan); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">WeasyPrint Engine Output</span>
+                    <h3 style="font-size: 1.4rem; margin-top: 2px;">Executive Audit Report & PDF Export</h3>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;">
+                    <button class="btn btn-primary" id="btn-download-pdf" onclick="app.downloadExecutivePDF()">
+                        📑 Export Executive Audit PDF Report
+                    </button>
+                    <button class="btn btn-secondary" onclick="app.refreshReportPreview()">
+                        🔄 Refresh Live Report Preview
+                    </button>
+                </div>
+
+                <div style="background: #ffffff; border-radius: var(--radius-sm); padding: 0.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.6); overflow-y: auto; max-height: 600px; border: 1px solid var(--border-glass);" id="report-preview-viewport">
+                    <div style="padding: 2rem; text-align: center; color: #718096;">
+                        ⏳ Loading report preview...
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. REPORT AUTHENTICATOR / OWNER EXECUTIVE COMMAND CENTER -->
+        <section id="admin-view" class="view-hidden">
+            <div style="display: flex; justify-content: space-between; align-align: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <span style="font-size: 0.75rem; color: var(--accent-violet); font-weight: 700; text-transform: uppercase;">Owner & Report Authenticator Command Center</span>
+                    <h2 style="font-size: 1.6rem; margin-top: 2px;">📊 Master Store Audit Excel Record Sheet</h2>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="api.downloadBulkCSV()">
+                        📥 Export Master Excel (.csv) Spreadsheet
+                    </button>
+                </div>
+            </div>
+
+            <!-- KPI Scorecard Grid -->
+            <div class="kpi-grid">
+                <div class="glass-panel kpi-stat-card">
+                    <div class="kpi-number" id="stat-total-surveys">0</div>
+                    <div class="kpi-title">Completed Store Audits</div>
+                </div>
+                <div class="glass-panel kpi-stat-card" style="border-bottom-color: var(--accent-cyan);">
+                    <div class="kpi-number" id="stat-total-engineers">0</div>
+                    <div class="kpi-title">Active Field Engineers</div>
+                </div>
+                <div class="glass-panel kpi-stat-card">
+                    <div class="kpi-number" id="stat-total-hotspots">0</div>
+                    <div class="kpi-title">Hotspots Surveyed</div>
+                </div>
+                <div class="glass-panel kpi-stat-card" style="border-bottom-color: var(--success-green);">
+                    <div class="kpi-number" id="stat-repeater-rate" style="color: var(--success-green); -webkit-text-fill-color: initial;">100%</div>
+                    <div class="kpi-title">Repeater Operational Rate</div>
+                </div>
+            </div>
+
+            <!-- Master Excel Data Sheet Container -->
+            <div class="glass-panel" style="padding: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="font-size: 1.2rem; font-family: 'Outfit', sans-serif;">📋 Live Store Survey Master Ledger</h3>
+                    
+                    <div style="max-width: 320px; width: 100%;">
+                        <input type="text" id="admin-search-input" class="form-input" placeholder="🔍 Search Store, Mobile, ID..." style="min-height: 40px; font-size: 0.85rem;" oninput="app.filterAdminTable()">
+                    </div>
+                </div>
+
+                <div class="data-table-container" style="max-height: 600px; overflow-y: auto;">
+                    <table class="data-table" id="admin-surveys-table">
+                        <thead>
+                            <tr>
+                                <th>Audit ID</th>
+                                <th>Store Site Name</th>
+                                <th>Engineer Mobile</th>
+                                <th>Repeater Unit</th>
+                                <th>5G Small Cell</th>
+                                <th>Hotspots</th>
+                                <th>Audit Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-table-body">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">Loading master survey records...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
