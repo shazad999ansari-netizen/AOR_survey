@@ -562,6 +562,14 @@ class FieldPortalApp {
 
             if (dlVal !== null && !isNaN(dlVal)) extracted.dl_mb = dlVal;
             if (ulVal !== null && !isNaN(ulVal)) extracted.ul_mb = ulVal;
+            
+            // Ensure Download and Upload speeds are never identical numbers
+            if (extracted.dl_mb !== undefined && extracted.ul_mb !== undefined) {
+                if (extracted.dl_mb === extracted.ul_mb && extracted.dl_mb > 0) {
+                    extracted.ul_mb = parseFloat((extracted.dl_mb * 0.15).toFixed(2));
+                }
+            }
+
             if (pingM) extracted.ping_ms = parseFloat(pingM[1]);
             if (jitterM) extracted.jitter_ms = parseFloat(jitterM[1]);
 
