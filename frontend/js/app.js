@@ -106,8 +106,8 @@ class FieldPortalApp {
                                     <td style="font-size: 0.8rem; color: var(--text-secondary);">RSRQ / SINR: <span id="cell-${hs.id}-rsrq_4g">-</span> / <span id="cell-${hs.id}-sinr_4g">-</span></td>
                                 </tr>
                                 <tr>
-                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">DL / UL Speed: <span id="cell-${hs.id}-dl_mb_5g">0</span> Mbps / <span id="cell-${hs.id}-ul_mb_5g">0</span> Mbps</td>
-                                    <td style="font-size: 0.8rem; color: var(--text-secondary);">DL / UL Speed: <span id="cell-${hs.id}-dl_mb_4g">0</span> Mbps / <span id="cell-${hs.id}-ul_mb_4g">0</span> Mbps</td>
+                                    <td style="font-size: 0.85rem; color: var(--text-secondary);">DL / UL Speed: <span id="cell-${hs.id}-dl_mb_5g" contenteditable="true" style="color: var(--accent-cyan); font-weight: 700;">-</span> Mbps / <span id="cell-${hs.id}-ul_mb_5g" contenteditable="true" style="color: var(--accent-cyan); font-weight: 700;">-</span> Mbps</td>
+                                    <td style="font-size: 0.85rem; color: var(--text-secondary);">DL / UL Speed: <span id="cell-${hs.id}-dl_mb_4g" contenteditable="true" style="color: var(--accent-violet); font-weight: 700;">-</span> Mbps / <span id="cell-${hs.id}-ul_mb_4g" contenteditable="true" style="color: var(--accent-violet); font-weight: 700;">-</span> Mbps</td>
                                 </tr>
                             </tbody>
                         </table>
