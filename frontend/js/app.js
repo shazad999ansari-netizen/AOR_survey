@@ -520,90 +520,70 @@ class FieldPortalApp {
         try {
             if (typeof Tesseract === 'undefined') return {};
 
-            // Crop top 45% of image to isolate Speedtest result boxes and remove middle ad banners
-            const croppedFile = await this.cropTopPortionOfImage(file, 0.45);
-
+            // 1. Recognize text from full image
             const resultFull = await Tesseract.recognize(file, 'eng');
-            const resultTop = await Tesseract.recognize(croppedFile, 'eng');
-
             const textFull = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
-            const textTop = (resultTop && resultTop.data && resultTop.data.text) ? resultTop.data.text : '';
+            console.log("Full Image OCR Raw Text Output:\n", textFull);
 
-            console.log("Full Image OCR Text:\n", textFull);
-            console.log("Top Cropped OCR Text:\n", textTop);
+            const isGNetTrack = /gnettrack|g-nettrack|mcc|tac|gnodeb|enodeb|serving\s*time|cellid/i.test(textFull);
+            const isSpeedtest = /speedtest|download|upload|mbps|jitter|ping\s*ms/i.test(textFull);
 
             const extracted = {};
 
-            // 1. gNB (5G) & eNB (4G) - search full image
-            const gnbM = textFull.match(/(?:gnb|gnodeb)[:\s]+(\d+)/i);
-            const enbM = textFull.match(/(?:enb|enodeb)[:\s]+(\d+)/i);
-            
-            // 2. CID & PCI - search full image
-            const cidM = textFull.match(/(?:cid|cell\s*id)[:\s]+(\d+)/i);
-            const pciM = textFull.match(/(?:pci)[:\s]+(\d+)/i);
+            // A. If Image is G-NetTrack -> Extract Cell Telemetry ONLY (Never extract speed from G-NetTrack)
+            if (isGNetTrack || !isSpeedtest) {
+                const gnbM = textFull.match(/(?:gnb|gnodeb)[:\s]+(\d+)/i);
+                const enbM = textFull.match(/(?:enb|enodeb)[:\s]+(\d+)/i);
+                const cidM = textFull.match(/(?:cid|cell\s*id)[:\s]+(\d+)/i);
+                const pciM = textFull.match(/(?:pci)[:\s]+(\d+)/i);
+                const bandM = textFull.match(/(?:band)[:\s]+([a-z0-9]+)/i);
+                const rsrpM = textFull.match(/(?:rsrp)[:\s]+(-?\d+)/i);
+                const rsrqM = textFull.match(/(?:rsrq)[:\s]+(-?\d+)/i);
+                const snrM  = textFull.match(/(?:sinr|snr)[:\s]+(-?\d+(?:\.\d+)?)/i);
 
-            // 3. BAND - search full image
-            const bandM = textFull.match(/(?:band)[:\s]+([a-z0-9]+)/i);
-
-            // 4. RSRP - search full image
-            const rsrpM = textFull.match(/(?:rsrp)[:\s]+(-?\d+)/i);
-            const rsrqM = textFull.match(/(?:rsrq)[:\s]+(-?\d+)/i);
-            const snrM  = textFull.match(/(?:sinr|snr)[:\s]+(-?\d+(?:\.\d+)?)/i);
-
-            // 5. Speedtest Download & Upload - search strictly TOP CROPPED IMAGE (no ads)
-            let dlVal = null;
-            let ulVal = null;
-
-            const dlBlock = textTop.match(/Download[\s\S]{1,40}?(\d+(?:\.\d+)?)/i);
-            if (dlBlock) {
-                dlVal = parseFloat(dlBlock[1]);
-            }
-
-            const ulBlock = textTop.match(/Upload[\s\S]{1,40}?(\d+(?:\.\d+)?)/i);
-            if (ulBlock) {
-                ulVal = parseFloat(ulBlock[1]);
-            }
-
-            // Fallback to Mbps matches in top cropped image
-            const mbpsMatches = textTop.match(/(\d+(?:\.\d+)?)\s*Mbps/gi);
-            if (mbpsMatches && mbpsMatches.length >= 1 && dlVal === null) {
-                const numMatch = mbpsMatches[0].match(/(\d+(?:\.\d+)?)/);
-                if (numMatch) dlVal = parseFloat(numMatch[1]);
-            }
-            if (mbpsMatches && mbpsMatches.length >= 2 && ulVal === null) {
-                const numMatch = mbpsMatches[1].match(/(\d+(?:\.\d+)?)/);
-                if (numMatch) ulVal = parseFloat(numMatch[1]);
-            }
-
-            const pingM = textTop.match(/(?:ping)[:\s]*(\d+)/i) || textFull.match(/(?:ping)[:\s]*(\d+)/i);
-            const jitterM = textTop.match(/(?:jitter)[:\s]*(\d+)/i) || textFull.match(/(?:jitter)[:\s]*(\d+)/i);
-
-            if (gnbM) extracted.gnb = parseInt(gnbM[1]);
-            if (enbM) extracted.enb = parseInt(enbM[1]);
-            if (cidM) extracted.cid = parseInt(cidM[1]);
-            if (pciM) extracted.pci = parseInt(pciM[1]);
-            
-            if (bandM) {
-                let bStr = bandM[1].toUpperCase();
-                if (bStr.startsWith('L')) bStr = 'B' + bStr.substring(1);
-                extracted.band = bStr;
-            }
-
-            if (rsrpM) extracted.rsrp = parseFloat(rsrpM[1]);
-            if (rsrqM) extracted.rsrq = parseFloat(rsrqM[1]);
-            if (snrM)  extracted.sinr = parseFloat(snrM[1]);
-
-            if (dlVal !== null && !isNaN(dlVal)) extracted.dl_mb = dlVal;
-            if (ulVal !== null && !isNaN(ulVal)) extracted.ul_mb = ulVal;
-            
-            if (extracted.dl_mb !== undefined && extracted.ul_mb !== undefined) {
-                if (extracted.dl_mb === extracted.ul_mb && extracted.dl_mb > 0) {
-                    extracted.ul_mb = parseFloat((extracted.dl_mb * 0.15).toFixed(2));
+                if (gnbM) extracted.gnb = parseInt(gnbM[1]);
+                if (enbM) extracted.enb = parseInt(enbM[1]);
+                if (cidM) extracted.cid = parseInt(cidM[1]);
+                if (pciM) extracted.pci = parseInt(pciM[1]);
+                if (bandM) {
+                    let bStr = bandM[1].toUpperCase();
+                    if (bStr.startsWith('L')) bStr = 'B' + bStr.substring(1);
+                    extracted.band = bStr;
                 }
+                if (rsrpM) extracted.rsrp = parseFloat(rsrpM[1]);
+                if (rsrqM) extracted.rsrq = parseFloat(rsrqM[1]);
+                if (snrM)  extracted.sinr = parseFloat(snrM[1]);
             }
 
-            if (pingM) extracted.ping_ms = parseFloat(pingM[1]);
-            if (jitterM) extracted.jitter_ms = parseFloat(jitterM[1]);
+            // B. If Image is Speedtest -> Crop Top 45% & Extract Speedtest Metrics ONLY
+            if (isSpeedtest) {
+                const croppedFile = await this.cropTopPortionOfImage(file, 0.45);
+                const resultTop = await Tesseract.recognize(croppedFile, 'eng');
+                const textTop = (resultTop && resultTop.data && resultTop.data.text) ? resultTop.data.text : textFull;
+                console.log("Speedtest Top Cropped OCR Text Output:\n", textTop);
+
+                let dlVal = null;
+                let ulVal = null;
+
+                const dlBlock = textTop.match(/Download[\s\S]{1,40}?(\d+(?:\.\d+)?)/i);
+                if (dlBlock) dlVal = parseFloat(dlBlock[1]);
+
+                const ulBlock = textTop.match(/Upload[\s\S]{1,40}?(\d+(?:\.\d+)?)/i);
+                if (ulBlock) ulVal = parseFloat(ulBlock[1]);
+
+                const mbpsMatches = textTop.match(/(\d+(?:\.\d+)?)\s*Mbps/gi);
+                if (mbpsMatches && mbpsMatches.length >= 1 && dlVal === null) {
+                    const numMatch = mbpsMatches[0].match(/(\d+(?:\.\d+)?)/);
+                    if (numMatch) dlVal = parseFloat(numMatch[1]);
+                }
+                if (mbpsMatches && mbpsMatches.length >= 2 && ulVal === null) {
+                    const numMatch = mbpsMatches[1].match(/(\d+(?:\.\d+)?)/);
+                    if (numMatch) ulVal = parseFloat(numMatch[1]);
+                }
+
+                if (dlVal !== null && !isNaN(dlVal)) extracted.dl_mb = dlVal;
+                if (ulVal !== null && !isNaN(ulVal)) extracted.ul_mb = ulVal;
+            }
 
             return extracted;
         } catch (err) {
