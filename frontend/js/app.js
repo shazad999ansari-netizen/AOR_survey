@@ -489,61 +489,94 @@ class FieldPortalApp {
         }
     }
 
+    async cropTopPortionOfImage(file, topRatio = 0.45) {
+        return new Promise((resolve) => {
+            try {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.width;
+                        canvas.height = Math.floor(img.height * topRatio);
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, img.width, canvas.height, 0, 0, img.width, canvas.height);
+                        canvas.toBlob((blob) => {
+                            resolve(blob || file);
+                        }, 'image/jpeg');
+                    } catch (e) {
+                        resolve(file);
+                    }
+                };
+                img.onerror = () => resolve(file);
+                img.src = URL.createObjectURL(file);
+            } catch (e) {
+                resolve(file);
+            }
+        });
+    }
+
     async performRealImageOCR(file) {
         if (!file) return {};
         try {
             if (typeof Tesseract === 'undefined') return {};
-            const result = await Tesseract.recognize(file, 'eng');
-            const text = (result && result.data && result.data.text) ? result.data.text : '';
-            console.log("Real Screenshot OCR Text Output:\n", text);
+
+            // Crop top 45% of image to isolate Speedtest result boxes and remove middle ad banners
+            const croppedFile = await this.cropTopPortionOfImage(file, 0.45);
+
+            const resultFull = await Tesseract.recognize(file, 'eng');
+            const resultTop = await Tesseract.recognize(croppedFile, 'eng');
+
+            const textFull = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
+            const textTop = (resultTop && resultTop.data && resultTop.data.text) ? resultTop.data.text : '';
+
+            console.log("Full Image OCR Text:\n", textFull);
+            console.log("Top Cropped OCR Text:\n", textTop);
 
             const extracted = {};
 
-            // 1. gNB (5G) & eNB (4G)
-            const gnbM = text.match(/(?:gnb|gnodeb)[:\s]+(\d+)/i);
-            const enbM = text.match(/(?:enb|enodeb)[:\s]+(\d+)/i);
+            // 1. gNB (5G) & eNB (4G) - search full image
+            const gnbM = textFull.match(/(?:gnb|gnodeb)[:\s]+(\d+)/i);
+            const enbM = textFull.match(/(?:enb|enodeb)[:\s]+(\d+)/i);
             
-            // 2. CID (Cell ID)
-            const cidM = text.match(/(?:cid|cell\s*id)[:\s]+(\d+)/i);
-            
-            // 3. PCI (Physical Cell ID)
-            const pciM = text.match(/(?:pci)[:\s]+(\d+)/i);
+            // 2. CID & PCI - search full image
+            const cidM = textFull.match(/(?:cid|cell\s*id)[:\s]+(\d+)/i);
+            const pciM = textFull.match(/(?:pci)[:\s]+(\d+)/i);
 
-            // 4. BAND (L40, N78, B3, B40, 40, 78)
-            const bandM = text.match(/(?:band)[:\s]+([a-z0-9]+)/i);
+            // 3. BAND - search full image
+            const bandM = textFull.match(/(?:band)[:\s]+([a-z0-9]+)/i);
 
-            // 5. RSRP, RSRQ, SINR/SNR
-            const rsrpM = text.match(/(?:rsrp)[:\s]+(-?\d+)/i);
-            const rsrqM = text.match(/(?:rsrq)[:\s]+(-?\d+)/i);
-            const snrM  = text.match(/(?:sinr|snr)[:\s]+(-?\d+(?:\.\d+)?)/i);
+            // 4. RSRP - search full image
+            const rsrpM = textFull.match(/(?:rsrp)[:\s]+(-?\d+)/i);
+            const rsrqM = textFull.match(/(?:rsrq)[:\s]+(-?\d+)/i);
+            const snrM  = textFull.match(/(?:sinr|snr)[:\s]+(-?\d+(?:\.\d+)?)/i);
 
-            // 6. Speedtest Download, Upload, Ping, Jitter
+            // 5. Speedtest Download & Upload - search strictly TOP CROPPED IMAGE (no ads)
             let dlVal = null;
-            const dlBlock = text.match(/Download[\s\S]{1,50}?(\d+(?:\.\d+)?)/i);
+            let ulVal = null;
+
+            const dlBlock = textTop.match(/Download[\s\S]{1,40}?(\d+(?:\.\d+)?)/i);
             if (dlBlock) {
                 dlVal = parseFloat(dlBlock[1]);
-            } else {
-                const mbpsMatches = text.match(/(\d+(?:\.\d+)?)\s*Mbps/gi);
-                if (mbpsMatches && mbpsMatches.length >= 1) {
-                    const numMatch = mbpsMatches[0].match(/(\d+(?:\.\d+)?)/);
-                    if (numMatch) dlVal = parseFloat(numMatch[1]);
-                }
             }
 
-            let ulVal = null;
-            const ulBlock = text.match(/Upload[\s\S]{1,50}?(\d+(?:\.\d+)?)/i);
+            const ulBlock = textTop.match(/Upload[\s\S]{1,40}?(\d+(?:\.\d+)?)/i);
             if (ulBlock) {
                 ulVal = parseFloat(ulBlock[1]);
-            } else {
-                const mbpsMatches = text.match(/(\d+(?:\.\d+)?)\s*Mbps/gi);
-                if (mbpsMatches && mbpsMatches.length >= 2) {
-                    const numMatch = mbpsMatches[1].match(/(\d+(?:\.\d+)?)/);
-                    if (numMatch) ulVal = parseFloat(numMatch[1]);
-                }
             }
 
-            const pingM = text.match(/(?:ping)[:\s]*(\d+)/i);
-            const jitterM = text.match(/(?:jitter)[:\s]*(\d+)/i);
+            // Fallback to Mbps matches in top cropped image
+            const mbpsMatches = textTop.match(/(\d+(?:\.\d+)?)\s*Mbps/gi);
+            if (mbpsMatches && mbpsMatches.length >= 1 && dlVal === null) {
+                const numMatch = mbpsMatches[0].match(/(\d+(?:\.\d+)?)/);
+                if (numMatch) dlVal = parseFloat(numMatch[1]);
+            }
+            if (mbpsMatches && mbpsMatches.length >= 2 && ulVal === null) {
+                const numMatch = mbpsMatches[1].match(/(\d+(?:\.\d+)?)/);
+                if (numMatch) ulVal = parseFloat(numMatch[1]);
+            }
+
+            const pingM = textTop.match(/(?:ping)[:\s]*(\d+)/i) || textFull.match(/(?:ping)[:\s]*(\d+)/i);
+            const jitterM = textTop.match(/(?:jitter)[:\s]*(\d+)/i) || textFull.match(/(?:jitter)[:\s]*(\d+)/i);
 
             if (gnbM) extracted.gnb = parseInt(gnbM[1]);
             if (enbM) extracted.enb = parseInt(enbM[1]);
@@ -552,7 +585,7 @@ class FieldPortalApp {
             
             if (bandM) {
                 let bStr = bandM[1].toUpperCase();
-                if (bStr.startsWith('L')) bStr = 'B' + bStr.substring(1); // L40 -> B40
+                if (bStr.startsWith('L')) bStr = 'B' + bStr.substring(1);
                 extracted.band = bStr;
             }
 
@@ -563,7 +596,6 @@ class FieldPortalApp {
             if (dlVal !== null && !isNaN(dlVal)) extracted.dl_mb = dlVal;
             if (ulVal !== null && !isNaN(ulVal)) extracted.ul_mb = ulVal;
             
-            // Ensure Download and Upload speeds are never identical numbers
             if (extracted.dl_mb !== undefined && extracted.ul_mb !== undefined) {
                 if (extracted.dl_mb === extracted.ul_mb && extracted.dl_mb > 0) {
                     extracted.ul_mb = parseFloat((extracted.dl_mb * 0.15).toFixed(2));
