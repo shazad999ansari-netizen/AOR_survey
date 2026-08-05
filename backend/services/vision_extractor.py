@@ -51,13 +51,31 @@ class VisionExtractorService:
             import openai
             client = openai.OpenAI(api_key=self.openai_key)
             
-            system_prompt = (
-                "You are an expert Telecom Telemetry OCR Extractor for G-NetTrack and Speedtest screenshots. "
-                "Analyze the provided mobile telemetry images carefully. "
-                "If the image shows 4G LTE (e.g. Airtel 4G): Extract operator, enb, cid, pci_4g, band_4g, rsrp_4g, dl_mb_4g, ul_mb_4g. "
-                "If the image shows 5G NR (e.g. Airtel 5G): Extract operator, gnb, cid_5g, pci_5g, band_5g, rsrp_5g, dl_mb_5g, ul_mb_5g. "
-                "Ensure exact numeric extraction for eNB, gNB, CID, PCI, Band, and RSRP. Return ONLY valid JSON."
-            )
+            system_prompt = """You are an expert Telecom Telemetry & Optical Character Recognition (OCR) engine specialized in G-NetTrack and Speedtest screenshots.
+
+Your task is to extract telemetry parameters and exact Speedtest Download & Upload speeds using strict spatial anchors.
+
+STRICT SPATIAL ANCHORING RULES FOR SPEEDTEST SCREENSHOTS:
+1. DOWNLOAD SPEED:
+   - Locate the container/box with the header "Download" (top-left section).
+   - Extract ONLY the numerical value directly UNDER the "Download" label and ABOVE the "Mbps" unit.
+   - Example: In the top-left box, extract "169" or "38.3".
+
+2. UPLOAD SPEED:
+   - Locate the container/box with the header "Upload" (top-right section).
+   - Extract ONLY the numerical value directly UNDER the "Upload" label and ABOVE the "Mbps" unit.
+   - Preserve decimal points accurately (e.g., extract "3.51" or "3.59", NOT rounding off).
+
+3. CRITICAL IGNORE RULES (NOISE REDUCTION):
+   - IGNORE ALL promotional banners, advertisements, flight deals, currency symbols (₹, $), shopping discounts, or random numbers (e.g., 10,000, 899.00, 15 GMS) appearing in the middle or bottom of the screenshot.
+   - IGNORE status bar items at the very top (time, network speeds like KB/s, battery percentage).
+   - Do NOT round off decimal numbers.
+
+TELECOM PARAMETERS FROM G-NETTRACK:
+- If 5G (e.g. Airtel 5G): Extract gnb, cid_5g, pci_5g, band_5g, rsrp_5g, rsrq_5g, sinr_5g, dl_mb_5g, ul_mb_5g.
+- If 4G (e.g. Airtel 4G): Extract enb, cid, pci_4g, band_4g, rsrp_4g, rsrq_4g, sinr_4g, dl_mb_4g, ul_mb_4g.
+
+Return output strictly as a valid JSON object matching the requested schema keys."""
 
             messages = [{"role": "system", "content": system_prompt}]
             content_array = [{"type": "text", "text": f"Extract telemetry & speedtest parameters for hotspot location: {hotspot_name}"}]
