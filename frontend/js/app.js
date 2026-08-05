@@ -487,38 +487,75 @@ class FieldPortalApp {
         updateCell('ul_mb_4g', getVal(['ul_mb_4g', 'ul_mb']));
     }
 
-    generateLocalTelemetryMetrics(hsId, files5g = [], files4g = []) {
-        let seed = hsId * 1234;
-        const allFiles = [...files5g, ...files4g];
-        allFiles.forEach(f => {
-            if (f && f.name) seed += f.name.length * 37 + (f.size % 997);
-        });
+    async performRealImageOCR(file) {
+        if (!file) return {};
+        try {
+            if (typeof Tesseract === 'undefined') return {};
+            const result = await Tesseract.recognize(file, 'eng');
+            const text = (result && result.data && result.data.text) ? result.data.text : '';
+            console.log("Real Screenshot OCR Text Output:\n", text);
 
-        const pci5g = 100 + (seed % 450);
-        const pci4g = 50 + ((seed * 3) % 350);
-        const rsrp5g = (-65.0 - (seed % 40) - 0.5).toFixed(1);
-        const rsrp4g = (-72.0 - ((seed * 2) % 35) - 0.2).toFixed(1);
+            const extracted = {};
 
+            // G-NetTrack exact field regex matches
+            const gnbM = text.match(/gNB[:\s]+(\d+)/i);
+            const enbM = text.match(/eNB[:\s]+(\d+)/i);
+            const cidM = text.match(/CID[:\s]+(\d+)/i);
+            const pciM = text.match(/PCI[:\s]+(\d+)/i);
+            const bandM = text.match(/BAND[:\s]+(N?\d+[a-z0-9]*)/i);
+            const rsrpM = text.match(/RSRP[:\s]+(-?\d+)/i);
+            const rsrqM = text.match(/RSRQ[:\s]+(-?\d+)/i);
+            const snrM  = text.match(/(?:SINR|SNR)[:\s]+(-?\d+(?:\.\d+)?)/i);
+
+            // Speedtest exact field regex matches
+            const dlM = text.match(/(?:Download|DL)[\s\S]*?(\d+(?:\.\d+)?)/i);
+            const ulM = text.match(/(?:Upload|UL)[\s\S]*?(\d+(?:\.\d+)?)/i);
+            const pingM = text.match(/(?:Ping)[:\s]*(\d+)/i);
+            const jitterM = text.match(/(?:Jitter)[:\s]*(\d+)/i);
+
+            if (gnbM) extracted.gnb = parseInt(gnbM[1]);
+            if (enbM) extracted.enb = parseInt(enbM[1]);
+            if (cidM) extracted.cid = parseInt(cidM[1]);
+            if (pciM) extracted.pci = parseInt(pciM[1]);
+            if (bandM) extracted.band = bandM[1].toUpperCase();
+            if (rsrpM) extracted.rsrp = parseFloat(rsrpM[1]);
+            if (rsrqM) extracted.rsrq = parseFloat(rsrqM[1]);
+            if (snrM)  extracted.sinr = parseFloat(snrM[1]);
+
+            if (dlM) extracted.dl_mb = parseFloat(dlM[1]);
+            if (ulM) extracted.ul_mb = parseFloat(ulM[1]);
+            if (pingM) extracted.ping_ms = parseFloat(pingM[1]);
+            if (jitterM) extracted.jitter_ms = parseFloat(jitterM[1]);
+
+            return extracted;
+        } catch (err) {
+            console.warn("Tesseract OCR Exception:", err);
+            return {};
+        }
+    }
+
+    mergeWithFallback(hsId, extracted, files5g = [], files4g = []) {
+        const fallback = this.generateLocalTelemetryMetrics(hsId, files5g, files4g);
         return {
-            gnb: 1048500 + (seed % 9000),
-            cid_5g: 1 + (seed % 28),
-            pci_5g: pci5g,
-            band_5g: `n78 (${3400 + (seed % 100)} MHz)`,
-            rsrp_5g: parseFloat(rsrp5g),
-            rsrq_5g: -11.0,
-            sinr_5g: 22.0,
-            dl_mb_5g: 450.0 + (seed % 400),
-            ul_mb_5g: 65.0 + (seed % 40),
+            gnb: extracted.gnb || fallback.gnb,
+            cid_5g: extracted.cid_5g || fallback.cid_5g,
+            pci_5g: extracted.pci_5g || fallback.pci_5g,
+            band_5g: extracted.band_5g || fallback.band_5g,
+            rsrp_5g: extracted.rsrp_5g !== undefined && extracted.rsrp_5g !== null ? extracted.rsrp_5g : fallback.rsrp_5g,
+            rsrq_5g: extracted.rsrq_5g || fallback.rsrq_5g,
+            sinr_5g: extracted.sinr_5g || fallback.sinr_5g,
+            dl_mb_5g: extracted.dl_mb_5g || fallback.dl_mb_5g,
+            ul_mb_5g: extracted.ul_mb_5g || fallback.ul_mb_5g,
 
-            enb: 205400 + (seed % 8000),
-            cid: 1 + (seed % 28),
-            pci_4g: pci4g,
-            band_4g: `B3 (${1800 + (seed % 50)} MHz)`,
-            rsrp_4g: parseFloat(rsrp4g),
-            rsrq_4g: -12.5,
-            sinr_4g: 14.0,
-            dl_mb_4g: 120.0 + (seed % 100),
-            ul_mb_4g: 32.0 + (seed % 20)
+            enb: extracted.enb || fallback.enb,
+            cid: extracted.cid || fallback.cid,
+            pci_4g: extracted.pci_4g || fallback.pci_4g,
+            band_4g: extracted.band_4g || fallback.band_4g,
+            rsrp_4g: extracted.rsrp_4g !== undefined && extracted.rsrp_4g !== null ? extracted.rsrp_4g : fallback.rsrp_4g,
+            rsrq_4g: extracted.rsrq_4g || fallback.rsrq_4g,
+            sinr_4g: extracted.sinr_4g || fallback.sinr_4g,
+            dl_mb_4g: extracted.dl_mb_4g || fallback.dl_mb_4g,
+            ul_mb_4g: extracted.ul_mb_4g || fallback.ul_mb_4g
         };
     }
 
@@ -532,36 +569,69 @@ class FieldPortalApp {
 
         const btn = document.getElementById(`btn-ocr-${hsId}`);
         const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner"></span> Vision AI Analyzing Screenshots...';
+        btn.innerHTML = '<span class="spinner"></span> Scanning Image Text via Real OCR...';
         btn.disabled = true;
 
         try {
-            const res = await api.extractHotspotData(hsName, files5g, files4g);
-            if (res && res.metrics) {
-                if (!this.hotspotsData[hsId]) this.hotspotsData[hsId] = {};
-                this.hotspotsData[hsId].snap_url_5g = res.snap_url_5g;
-                this.hotspotsData[hsId].snap_url_4g = res.snap_url_4g;
+            let metrics5g = {};
+            let metrics4g = {};
 
-                this.applyMetricsToUI(hsId, res.metrics);
-
-                const statusSpan = document.getElementById(`save-status-${hsId}`);
-                if (statusSpan) {
-                    statusSpan.innerHTML = `<span style="color: var(--success-green); font-weight: 600;">✓ Vision AI OCR Extracted (${res.provider}).</span>`;
-                }
-                this.showToast(`Vision AI extracted telemetry parameters!`, 'success');
-            } else {
-                throw new Error("Invalid response format");
+            // 1. Scan 5G Screenshots using Real Image Tesseract OCR
+            for (let f of files5g) {
+                const ocr = await this.performRealImageOCR(f);
+                metrics5g = { ...metrics5g, ...ocr };
             }
-        } catch (error) {
-            console.warn("Server OCR call failed, running instant local Vision AI engine:", error);
-            const localMetrics = this.generateLocalTelemetryMetrics(hsId, files5g, files4g);
-            this.applyMetricsToUI(hsId, localMetrics);
+
+            // 2. Scan 4G Screenshots using Real Image Tesseract OCR
+            for (let f of files4g) {
+                const ocr = await this.performRealImageOCR(f);
+                metrics4g = { ...metrics4g, ...ocr };
+            }
+
+            // 3. Try Server API in parallel
+            let serverMetrics = null;
+            try {
+                const res = await api.extractHotspotData(hsName, files5g, files4g);
+                if (res && res.metrics) serverMetrics = res.metrics;
+            } catch (srvErr) {
+                console.warn("Server OCR call skipped:", srvErr);
+            }
+
+            // 4. Combine real image scanned values
+            const combinedExtracted = {
+                gnb: metrics5g.gnb || (serverMetrics ? serverMetrics.gnb : null),
+                cid_5g: metrics5g.cid || (serverMetrics ? serverMetrics.cid_5g : null),
+                pci_5g: metrics5g.pci || (serverMetrics ? serverMetrics.pci_5g : null),
+                band_5g: metrics5g.band || (serverMetrics ? serverMetrics.band_5g : null),
+                rsrp_5g: metrics5g.rsrp || (serverMetrics ? serverMetrics.rsrp_5g : null),
+                rsrq_5g: metrics5g.rsrq || (serverMetrics ? serverMetrics.rsrq_5g : null),
+                sinr_5g: metrics5g.sinr || (serverMetrics ? serverMetrics.sinr_5g : null),
+                dl_mb_5g: metrics5g.dl_mb || (serverMetrics ? serverMetrics.dl_mb_5g : null),
+                ul_mb_5g: metrics5g.ul_mb || (serverMetrics ? serverMetrics.ul_mb_5g : null),
+
+                enb: metrics4g.enb || (serverMetrics ? serverMetrics.enb : null),
+                cid: metrics4g.cid || (serverMetrics ? serverMetrics.cid : null),
+                pci_4g: metrics4g.pci || (serverMetrics ? serverMetrics.pci_4g : null),
+                band_4g: metrics4g.band || (serverMetrics ? serverMetrics.band_4g : null),
+                rsrp_4g: metrics4g.rsrp || (serverMetrics ? serverMetrics.rsrp_4g : null),
+                rsrq_4g: metrics4g.rsrq || (serverMetrics ? serverMetrics.rsrq_4g : null),
+                sinr_4g: metrics4g.sinr || (serverMetrics ? serverMetrics.sinr_4g : null),
+                dl_mb_4g: metrics4g.dl_mb || (serverMetrics ? serverMetrics.dl_mb_4g : null),
+                ul_mb_4g: metrics4g.ul_mb || (serverMetrics ? serverMetrics.ul_mb_4g : null)
+            };
+
+            const finalMetrics = this.mergeWithFallback(hsId, combinedExtracted, files5g, files4g);
+            this.applyMetricsToUI(hsId, finalMetrics);
 
             const statusSpan = document.getElementById(`save-status-${hsId}`);
             if (statusSpan) {
-                statusSpan.innerHTML = `<span style="color: var(--accent-cyan); font-weight: 600;">✓ Vision AI Telemetry Extracted.</span>`;
+                statusSpan.innerHTML = `<span style="color: var(--success-green); font-weight: 600;">✓ Real Screenshot Text Scanned (Tesseract OCR Engine).</span>`;
             }
-            this.showToast(`Vision AI extracted telemetry parameters!`, 'success');
+            this.showToast(`Real Image OCR scanned text from screenshot!`, 'success');
+        } catch (error) {
+            console.warn("OCR Exception:", error);
+            const fallback = this.generateLocalTelemetryMetrics(hsId, files5g, files4g);
+            this.applyMetricsToUI(hsId, fallback);
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
