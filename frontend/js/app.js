@@ -626,12 +626,18 @@ class FieldPortalApp {
         btn.disabled = true;
 
         try {
-            // 1. Scan 5G Screenshots strictly for 5G metrics
+            // 1. Scan 5G Screenshots strictly for 5G metrics (preserve Speedtest non-zero speeds)
             if (files5g.length > 0) {
                 let m5g = {};
                 for (let f of files5g) {
                     const ocr = await this.performRealImageOCR(f);
-                    m5g = { ...m5g, ...ocr };
+                    for (let k in ocr) {
+                        if (ocr[k] !== null && ocr[k] !== undefined && ocr[k] !== 0) {
+                            m5g[k] = ocr[k];
+                        } else if (m5g[k] === undefined || m5g[k] === null) {
+                            m5g[k] = ocr[k];
+                        }
+                    }
                 }
                 const metrics5gFinal = {
                     gnb: m5g.gnb || m5g.enb,
@@ -647,12 +653,18 @@ class FieldPortalApp {
                 this.applyMetricsToUI(hsId, metrics5gFinal);
             }
 
-            // 2. Scan 4G Screenshots strictly for 4G metrics
+            // 2. Scan 4G Screenshots strictly for 4G metrics (preserve Speedtest non-zero speeds)
             if (files4g.length > 0) {
                 let m4g = {};
                 for (let f of files4g) {
                     const ocr = await this.performRealImageOCR(f);
-                    m4g = { ...m4g, ...ocr };
+                    for (let k in ocr) {
+                        if (ocr[k] !== null && ocr[k] !== undefined && ocr[k] !== 0) {
+                            m4g[k] = ocr[k];
+                        } else if (m4g[k] === undefined || m4g[k] === null) {
+                            m4g[k] = ocr[k];
+                        }
+                    }
                 }
                 const metrics4gFinal = {
                     enb: m4g.enb || m4g.gnb,
