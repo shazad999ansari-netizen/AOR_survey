@@ -497,27 +497,41 @@ class FieldPortalApp {
 
             const extracted = {};
 
-            // G-NetTrack exact field regex matches
-            const gnbM = text.match(/gNB[:\s]+(\d+)/i);
-            const enbM = text.match(/eNB[:\s]+(\d+)/i);
-            const cidM = text.match(/CID[:\s]+(\d+)/i);
-            const pciM = text.match(/PCI[:\s]+(\d+)/i);
-            const bandM = text.match(/BAND[:\s]+(N?\d+[a-z0-9]*)/i);
-            const rsrpM = text.match(/RSRP[:\s]+(-?\d+)/i);
-            const rsrqM = text.match(/RSRQ[:\s]+(-?\d+)/i);
-            const snrM  = text.match(/(?:SINR|SNR)[:\s]+(-?\d+(?:\.\d+)?)/i);
+            // 1. gNB (5G) & eNB (4G)
+            const gnbM = text.match(/(?:gnb|gnodeb)[:\s]+(\d+)/i);
+            const enbM = text.match(/(?:enb|enodeb)[:\s]+(\d+)/i);
+            
+            // 2. CID (Cell ID)
+            const cidM = text.match(/(?:cid|cell\s*id)[:\s]+(\d+)/i);
+            
+            // 3. PCI (Physical Cell ID)
+            const pciM = text.match(/(?:pci)[:\s]+(\d+)/i);
 
-            // Speedtest exact field regex matches
-            const dlM = text.match(/(?:Download|DL)[\s\S]*?(\d+(?:\.\d+)?)/i);
-            const ulM = text.match(/(?:Upload|UL)[\s\S]*?(\d+(?:\.\d+)?)/i);
-            const pingM = text.match(/(?:Ping)[:\s]*(\d+)/i);
-            const jitterM = text.match(/(?:Jitter)[:\s]*(\d+)/i);
+            // 4. BAND (L40, N78, B3, B40, 40, 78)
+            const bandM = text.match(/(?:band)[:\s]+([a-z0-9]+)/i);
+
+            // 5. RSRP, RSRQ, SINR/SNR
+            const rsrpM = text.match(/(?:rsrp)[:\s]+(-?\d+)/i);
+            const rsrqM = text.match(/(?:rsrq)[:\s]+(-?\d+)/i);
+            const snrM  = text.match(/(?:sinr|snr)[:\s]+(-?\d+(?:\.\d+)?)/i);
+
+            // 6. Speedtest Download, Upload, Ping, Jitter
+            const dlM = text.match(/(?:download|dl)[\s\S]*?(\d+(?:\.\d+)?)/i);
+            const ulM = text.match(/(?:upload|ul)[\s\S]*?(\d+(?:\.\d+)?)/i);
+            const pingM = text.match(/(?:ping)[:\s]*(\d+)/i);
+            const jitterM = text.match(/(?:jitter)[:\s]*(\d+)/i);
 
             if (gnbM) extracted.gnb = parseInt(gnbM[1]);
             if (enbM) extracted.enb = parseInt(enbM[1]);
             if (cidM) extracted.cid = parseInt(cidM[1]);
             if (pciM) extracted.pci = parseInt(pciM[1]);
-            if (bandM) extracted.band = bandM[1].toUpperCase();
+            
+            if (bandM) {
+                let bStr = bandM[1].toUpperCase();
+                if (bStr.startsWith('L')) bStr = 'B' + bStr.substring(1); // L40 -> B40
+                extracted.band = bStr;
+            }
+
             if (rsrpM) extracted.rsrp = parseFloat(rsrpM[1]);
             if (rsrqM) extracted.rsrq = parseFloat(rsrqM[1]);
             if (snrM)  extracted.sinr = parseFloat(snrM[1]);
