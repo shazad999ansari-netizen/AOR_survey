@@ -63,9 +63,25 @@ def get_current_user(
     
     user = db.query(User).filter(User.id == int(user_id_str)).first()
     if not user:
+        # Fallback to lookup by mobile number or auto-provision from valid signed JWT session
+        mobile = payload.get("mobile_number")
+        role = payload.get("role", "engineer")
+        if mobile:
+            user = db.query(User).filter(User.mobile_number == mobile).first()
+            if not user:
+                user = User(id=int(user_id_str), mobile_number=mobile, role=role)
+                db.add(user)
+                try:
+                    db.commit()
+                    db.refresh(user)
+                except Exception:
+                    db.rollback()
+                    user = db.query(User).filter(User.mobile_number == mobile).first()
+    
+    if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Authenticated user account could not be found in database."
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authenticated user session could not be resolved. Please log in with OTP again."
         )
     return user
 

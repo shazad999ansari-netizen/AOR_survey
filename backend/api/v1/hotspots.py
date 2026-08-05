@@ -1,4 +1,4 @@
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Union
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
 
@@ -14,8 +14,8 @@ router = APIRouter(tags=["Vision AI OCR & Hotspot Telemetry"])
 @router.post("/extract-hotspot-data", response_model=dict, status_code=status.HTTP_200_OK)
 async def extract_hotspot_data(
     hotspot_name: str = Form("Hotspot Reading"),
-    snap_5g: Optional[Any] = File(None),
-    snap_4g: Optional[Any] = File(None),
+    snap_5g: Union[List[UploadFile], UploadFile, None] = File(None),
+    snap_4g: Union[List[UploadFile], UploadFile, None] = File(None),
     current_user: User = Depends(require_engineer)
 ) -> dict[str, Any]:
     """
