@@ -518,8 +518,30 @@ class FieldPortalApp {
             const snrM  = text.match(/(?:sinr|snr)[:\s]+(-?\d+(?:\.\d+)?)/i);
 
             // 6. Speedtest Download, Upload, Ping, Jitter
-            const dlM = text.match(/(?:download|dl)[\s\S]*?(\d+(?:\.\d+)?)/i);
-            const ulM = text.match(/(?:upload|ul)[\s\S]*?(\d+(?:\.\d+)?)/i);
+            let dlVal = null;
+            const dlBlock = text.match(/Download[\s\S]{1,50}?(\d+(?:\.\d+)?)/i);
+            if (dlBlock) {
+                dlVal = parseFloat(dlBlock[1]);
+            } else {
+                const mbpsMatches = text.match(/(\d+(?:\.\d+)?)\s*Mbps/gi);
+                if (mbpsMatches && mbpsMatches.length >= 1) {
+                    const numMatch = mbpsMatches[0].match(/(\d+(?:\.\d+)?)/);
+                    if (numMatch) dlVal = parseFloat(numMatch[1]);
+                }
+            }
+
+            let ulVal = null;
+            const ulBlock = text.match(/Upload[\s\S]{1,50}?(\d+(?:\.\d+)?)/i);
+            if (ulBlock) {
+                ulVal = parseFloat(ulBlock[1]);
+            } else {
+                const mbpsMatches = text.match(/(\d+(?:\.\d+)?)\s*Mbps/gi);
+                if (mbpsMatches && mbpsMatches.length >= 2) {
+                    const numMatch = mbpsMatches[1].match(/(\d+(?:\.\d+)?)/);
+                    if (numMatch) ulVal = parseFloat(numMatch[1]);
+                }
+            }
+
             const pingM = text.match(/(?:ping)[:\s]*(\d+)/i);
             const jitterM = text.match(/(?:jitter)[:\s]*(\d+)/i);
 
@@ -538,8 +560,8 @@ class FieldPortalApp {
             if (rsrqM) extracted.rsrq = parseFloat(rsrqM[1]);
             if (snrM)  extracted.sinr = parseFloat(snrM[1]);
 
-            if (dlM) extracted.dl_mb = parseFloat(dlM[1]);
-            if (ulM) extracted.ul_mb = parseFloat(ulM[1]);
+            if (dlVal !== null && !isNaN(dlVal)) extracted.dl_mb = dlVal;
+            if (ulVal !== null && !isNaN(ulVal)) extracted.ul_mb = ulVal;
             if (pingM) extracted.ping_ms = parseFloat(pingM[1]);
             if (jitterM) extracted.jitter_ms = parseFloat(jitterM[1]);
 
