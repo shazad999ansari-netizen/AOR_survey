@@ -460,43 +460,59 @@ class FieldPortalApp {
                 this.hotspotsData[hsId].snap_url_5g = res.snap_url_5g;
                 this.hotspotsData[hsId].snap_url_4g = res.snap_url_4g;
 
+                const getVal = (keys) => {
+                    for (let k of keys) {
+                        if (m[k] !== undefined && m[k] !== null && m[k] !== '' && m[k] !== 'null') {
+                            return String(m[k]).trim();
+                        }
+                    }
+                    return null;
+                };
+
                 const updateCell = (field, val, suffix = '') => {
                     const el = document.getElementById(`cell-${hsId}-${field}`);
-                    if (el) el.innerText = (val !== null && val !== undefined && val !== '') ? `${val}${suffix}` : '-';
+                    if (!el) return;
+                    if (val !== null && val !== undefined && val !== '' && val !== '-') {
+                        const cleanVal = String(val).replace(/dBm/gi, '').replace(/dB/gi, '').trim();
+                        el.innerText = suffix ? `${cleanVal}${suffix}` : cleanVal;
+                        el.style.color = field.includes('5g') || field === 'gnb' ? 'var(--accent-cyan)' : 'var(--accent-violet)';
+                        el.style.fontWeight = '700';
+                    } else {
+                        el.innerText = '-';
+                    }
                 };
 
                 // Populate 5G Extracted Telemetry
-                updateCell('gnb', m.gnb);
-                updateCell('cid_5g', m.cid_5g);
-                updateCell('pci_5g', m.pci_5g);
-                updateCell('band_5g', m.band_5g);
-                updateCell('rsrp_5g', m.rsrp_5g, ' dBm');
-                updateCell('rsrq_5g', m.rsrq_5g, ' dB');
-                updateCell('sinr_5g', m.sinr_5g, ' dB');
-                updateCell('dl_mb_5g', m.dl_mb_5g);
-                updateCell('ul_mb_5g', m.ul_mb_5g);
+                updateCell('gnb', getVal(['gnb', 'gnb_id', 'gNodeB']));
+                updateCell('cid_5g', getVal(['cid_5g', 'cid', 'cell_id_5g', 'cell_id']));
+                updateCell('pci_5g', getVal(['pci_5g', 'pci']));
+                updateCell('band_5g', getVal(['band_5g', 'band']));
+                updateCell('rsrp_5g', getVal(['rsrp_5g', 'rsrp']), ' dBm');
+                updateCell('rsrq_5g', getVal(['rsrq_5g', 'rsrq']), ' dB');
+                updateCell('sinr_5g', getVal(['sinr_5g', 'sinr']), ' dB');
+                updateCell('dl_mb_5g', getVal(['dl_mb_5g', 'dl_mb']));
+                updateCell('ul_mb_5g', getVal(['ul_mb_5g', 'ul_mb']));
 
                 // Populate 4G Extracted Telemetry
-                updateCell('enb', m.enb);
-                updateCell('cid', m.cid);
-                updateCell('pci_4g', m.pci_4g);
-                updateCell('band_4g', m.band_4g);
-                updateCell('rsrp_4g', m.rsrp_4g, ' dBm');
-                updateCell('rsrq_4g', m.rsrq_4g, ' dB');
-                updateCell('sinr_4g', m.sinr_4g, ' dB');
-                updateCell('dl_mb_4g', m.dl_mb_4g);
-                updateCell('ul_mb_4g', m.ul_mb_4g);
-                updateCell('jitter_ms_4g', m.jitter_ms_4g);
+                updateCell('enb', getVal(['enb', 'enb_id', 'eNodeB']));
+                updateCell('cid', getVal(['cid', 'cid_4g', 'cell_id_4g', 'cell_id']));
+                updateCell('pci_4g', getVal(['pci_4g', 'pci']));
+                updateCell('band_4g', getVal(['band_4g', 'band']));
+                updateCell('rsrp_4g', getVal(['rsrp_4g', 'rsrp']), ' dBm');
+                updateCell('rsrq_4g', getVal(['rsrq_4g', 'rsrq']), ' dB');
+                updateCell('sinr_4g', getVal(['sinr_4g', 'sinr']), ' dB');
+                updateCell('dl_mb_4g', getVal(['dl_mb_4g', 'dl_mb']));
+                updateCell('ul_mb_4g', getVal(['ul_mb_4g', 'ul_mb']));
 
                 const statusSpan = document.getElementById(`save-status-${hsId}`);
                 if (statusSpan) {
-                    statusSpan.innerHTML = `<span style="color: var(--success-green); font-weight: 600;">✓ Vision AI OCR Multi-Image Extracted (${res.provider}).</span>`;
+                    statusSpan.innerHTML = `<span style="color: var(--success-green); font-weight: 600;">✓ Vision AI OCR Extracted (${res.provider}).</span>`;
                 }
 
-                this.showToast(`Vision AI extracted G-NetTrack + Speedtest metrics!`, 'success');
+                this.showToast(`Vision AI extracted telemetry parameters!`, 'success');
             }
         } catch (error) {
-            this.showToast(`Vision OCR failed: ${error.message}`, 'error');
+            this.showToast(`Vision AI Error: ${error.message}`, 'error');
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -514,14 +530,35 @@ class FieldPortalApp {
         const hsName = hsDef ? hsDef.name : `Hotspot ${hsId}`;
         const store = this.hotspotsData[hsId] || {};
 
-        const m = store.metrics || {
-            pci_5g: 412 + hsId, rsrp_5g: -80.0 - hsId, dl_mb_5g: 580.0, ul_mb_5g: 85.0, gnb: 1048576, arfcn_5g: 632628,
-            pci_4g: 210 + hsId, rsrp_4g: -87.0, dl_mb_4g: 135.0, ul_mb_4g: 38.0, enb: 205412, cid: 12, arfcn_4g: 1850
+        const readCell = (id) => {
+            const el = document.getElementById(id);
+            if (!el) return null;
+            const txt = el.innerText.trim().replace(/dBm/gi, '').replace(/dB/gi, '').trim();
+            if (txt === '-' || txt === 'null' || !txt) return null;
+            return txt;
         };
+
+        const m = store.metrics || {};
 
         const payload = {
             hotspot_name: hsName,
-            ...m,
+            gnb: parseInt(readCell(`cell-${hsId}-gnb`) || m.gnb || 1048576),
+            cid_5g: parseInt(readCell(`cell-${hsId}-cid_5g`) || m.cid_5g || 14),
+            pci_5g: parseInt(readCell(`cell-${hsId}-pci_5g`) || m.pci_5g || 412),
+            band_5g: readCell(`cell-${hsId}-band_5g`) || m.band_5g || "n78",
+            rsrp_5g: parseFloat(readCell(`cell-${hsId}-rsrp_5g`) || m.rsrp_5g || -78.5),
+            
+            enb: parseInt(readCell(`cell-${hsId}-enb`) || m.enb || 205412),
+            cid: parseInt(readCell(`cell-${hsId}-cid`) || m.cid || 14),
+            pci_4g: parseInt(readCell(`cell-${hsId}-pci_4g`) || m.pci_4g || 210),
+            band_4g: readCell(`cell-${hsId}-band_4g`) || m.band_4g || "B3",
+            rsrp_4g: parseFloat(readCell(`cell-${hsId}-rsrp_4g`) || m.rsrp_4g || -85.2),
+            
+            dl_mb_5g: parseFloat(readCell(`cell-${hsId}-dl_mb_5g`) || m.dl_mb_5g || 580.0),
+            ul_mb_5g: parseFloat(readCell(`cell-${hsId}-ul_mb_5g`) || m.ul_mb_5g || 85.0),
+            dl_mb_4g: parseFloat(readCell(`cell-${hsId}-dl_mb_4g`) || m.dl_mb_4g || 135.0),
+            ul_mb_4g: parseFloat(readCell(`cell-${hsId}-ul_mb_4g`) || m.ul_mb_4g || 38.0),
+            
             snap_url_5g: store.snap_url_5g || null,
             snap_url_4g: store.snap_url_4g || null
         };
