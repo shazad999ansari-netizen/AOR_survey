@@ -440,7 +440,7 @@ class FieldPortalApp {
 
     applyMetricsToUI(hsId, m) {
         if (!this.hotspotsData[hsId]) this.hotspotsData[hsId] = {};
-        this.hotspotsData[hsId].metrics = m;
+        this.hotspotsData[hsId].metrics = { ...(this.hotspotsData[hsId].metrics || {}), ...m };
 
         const getVal = (keys) => {
             for (let k of keys) {
@@ -459,32 +459,34 @@ class FieldPortalApp {
                 el.innerText = suffix ? `${cleanVal}${suffix}` : cleanVal;
                 el.style.color = field.includes('5g') || field === 'gnb' ? 'var(--accent-cyan)' : 'var(--accent-violet)';
                 el.style.fontWeight = '700';
-            } else {
-                el.innerText = '-';
             }
         };
 
-        // Populate 5G Extracted Telemetry
-        updateCell('gnb', getVal(['gnb', 'gnb_id', 'gNodeB']));
-        updateCell('cid_5g', getVal(['cid_5g', 'cid', 'cell_id_5g', 'cell_id']));
-        updateCell('pci_5g', getVal(['pci_5g', 'pci']));
-        updateCell('band_5g', getVal(['band_5g', 'band']));
-        updateCell('rsrp_5g', getVal(['rsrp_5g', 'rsrp']), ' dBm');
-        updateCell('rsrq_5g', getVal(['rsrq_5g', 'rsrq']), ' dB');
-        updateCell('sinr_5g', getVal(['sinr_5g', 'sinr']), ' dB');
-        updateCell('dl_mb_5g', getVal(['dl_mb_5g', 'dl_mb']));
-        updateCell('ul_mb_5g', getVal(['ul_mb_5g', 'ul_mb']));
+        // Populate 5G Extracted Telemetry ONLY if 5G values are present in m
+        if (m.gnb !== undefined || m.cid_5g !== undefined || m.pci_5g !== undefined || m.rsrp_5g !== undefined) {
+            updateCell('gnb', getVal(['gnb', 'gnb_id', 'gNodeB']));
+            updateCell('cid_5g', getVal(['cid_5g', 'cid', 'cell_id_5g', 'cell_id']));
+            updateCell('pci_5g', getVal(['pci_5g', 'pci']));
+            updateCell('band_5g', getVal(['band_5g', 'band']));
+            updateCell('rsrp_5g', getVal(['rsrp_5g', 'rsrp']), ' dBm');
+            updateCell('rsrq_5g', getVal(['rsrq_5g', 'rsrq']), ' dB');
+            updateCell('sinr_5g', getVal(['sinr_5g', 'sinr']), ' dB');
+            updateCell('dl_mb_5g', getVal(['dl_mb_5g', 'dl_mb']));
+            updateCell('ul_mb_5g', getVal(['ul_mb_5g', 'ul_mb']));
+        }
 
-        // Populate 4G Extracted Telemetry
-        updateCell('enb', getVal(['enb', 'enb_id', 'eNodeB']));
-        updateCell('cid', getVal(['cid', 'cid_4g', 'cell_id_4g', 'cell_id']));
-        updateCell('pci_4g', getVal(['pci_4g', 'pci']));
-        updateCell('band_4g', getVal(['band_4g', 'band']));
-        updateCell('rsrp_4g', getVal(['rsrp_4g', 'rsrp']), ' dBm');
-        updateCell('rsrq_4g', getVal(['rsrq_4g', 'rsrq']), ' dB');
-        updateCell('sinr_4g', getVal(['sinr_4g', 'sinr']), ' dB');
-        updateCell('dl_mb_4g', getVal(['dl_mb_4g', 'dl_mb']));
-        updateCell('ul_mb_4g', getVal(['ul_mb_4g', 'ul_mb']));
+        // Populate 4G Extracted Telemetry ONLY if 4G values are present in m
+        if (m.enb !== undefined || m.cid_4g !== undefined || m.cid !== undefined || m.pci_4g !== undefined || m.rsrp_4g !== undefined) {
+            updateCell('enb', getVal(['enb', 'enb_id', 'eNodeB']));
+            updateCell('cid', getVal(['cid', 'cid_4g', 'cell_id_4g', 'cell_id']));
+            updateCell('pci_4g', getVal(['pci_4g', 'pci']));
+            updateCell('band_4g', getVal(['band_4g', 'band']));
+            updateCell('rsrp_4g', getVal(['rsrp_4g', 'rsrp']), ' dBm');
+            updateCell('rsrq_4g', getVal(['rsrq_4g', 'rsrq']), ' dB');
+            updateCell('sinr_4g', getVal(['sinr_4g', 'sinr']), ' dB');
+            updateCell('dl_mb_4g', getVal(['dl_mb_4g', 'dl_mb']));
+            updateCell('ul_mb_4g', getVal(['ul_mb_4g', 'ul_mb']));
+        }
     }
 
     async performRealImageOCR(file) {
@@ -548,31 +550,6 @@ class FieldPortalApp {
         }
     }
 
-    mergeWithFallback(hsId, extracted, files5g = [], files4g = []) {
-        const fallback = this.generateLocalTelemetryMetrics(hsId, files5g, files4g);
-        return {
-            gnb: extracted.gnb || fallback.gnb,
-            cid_5g: extracted.cid_5g || fallback.cid_5g,
-            pci_5g: extracted.pci_5g || fallback.pci_5g,
-            band_5g: extracted.band_5g || fallback.band_5g,
-            rsrp_5g: extracted.rsrp_5g !== undefined && extracted.rsrp_5g !== null ? extracted.rsrp_5g : fallback.rsrp_5g,
-            rsrq_5g: extracted.rsrq_5g || fallback.rsrq_5g,
-            sinr_5g: extracted.sinr_5g || fallback.sinr_5g,
-            dl_mb_5g: extracted.dl_mb_5g || fallback.dl_mb_5g,
-            ul_mb_5g: extracted.ul_mb_5g || fallback.ul_mb_5g,
-
-            enb: extracted.enb || fallback.enb,
-            cid: extracted.cid || fallback.cid,
-            pci_4g: extracted.pci_4g || fallback.pci_4g,
-            band_4g: extracted.band_4g || fallback.band_4g,
-            rsrp_4g: extracted.rsrp_4g !== undefined && extracted.rsrp_4g !== null ? extracted.rsrp_4g : fallback.rsrp_4g,
-            rsrq_4g: extracted.rsrq_4g || fallback.rsrq_4g,
-            sinr_4g: extracted.sinr_4g || fallback.sinr_4g,
-            dl_mb_4g: extracted.dl_mb_4g || fallback.dl_mb_4g,
-            ul_mb_4g: extracted.ul_mb_4g || fallback.ul_mb_4g
-        };
-    }
-
     async triggerVisionOCR(hsId) {
         const hsDef = this.hotspotDefinitions.find(h => h.id === hsId);
         const hsName = hsDef ? hsDef.name : `Hotspot ${hsId}`;
@@ -587,65 +564,55 @@ class FieldPortalApp {
         btn.disabled = true;
 
         try {
-            let metrics5g = {};
-            let metrics4g = {};
-
-            // 1. Scan 5G Screenshots using Real Image Tesseract OCR
-            for (let f of files5g) {
-                const ocr = await this.performRealImageOCR(f);
-                metrics5g = { ...metrics5g, ...ocr };
+            // 1. Scan 5G Screenshots strictly for 5G metrics
+            if (files5g.length > 0) {
+                let m5g = {};
+                for (let f of files5g) {
+                    const ocr = await this.performRealImageOCR(f);
+                    m5g = { ...m5g, ...ocr };
+                }
+                const metrics5gFinal = {
+                    gnb: m5g.gnb || m5g.enb,
+                    cid_5g: m5g.cid,
+                    pci_5g: m5g.pci,
+                    band_5g: m5g.band ? (m5g.band.startsWith('N') ? m5g.band : `n${m5g.band}`) : null,
+                    rsrp_5g: m5g.rsrp,
+                    rsrq_5g: m5g.rsrq,
+                    sinr_5g: m5g.sinr,
+                    dl_mb_5g: m5g.dl_mb,
+                    ul_mb_5g: m5g.ul_mb
+                };
+                this.applyMetricsToUI(hsId, metrics5gFinal);
             }
 
-            // 2. Scan 4G Screenshots using Real Image Tesseract OCR
-            for (let f of files4g) {
-                const ocr = await this.performRealImageOCR(f);
-                metrics4g = { ...metrics4g, ...ocr };
+            // 2. Scan 4G Screenshots strictly for 4G metrics
+            if (files4g.length > 0) {
+                let m4g = {};
+                for (let f of files4g) {
+                    const ocr = await this.performRealImageOCR(f);
+                    m4g = { ...m4g, ...ocr };
+                }
+                const metrics4gFinal = {
+                    enb: m4g.enb || m4g.gnb,
+                    cid: m4g.cid,
+                    pci_4g: m4g.pci,
+                    band_4g: m4g.band ? (m4g.band.startsWith('B') ? m4g.band : `B${m4g.band}`) : null,
+                    rsrp_4g: m4g.rsrp,
+                    rsrq_4g: m4g.rsrq,
+                    sinr_4g: m4g.sinr,
+                    dl_mb_4g: m4g.dl_mb,
+                    ul_mb_4g: m4g.ul_mb
+                };
+                this.applyMetricsToUI(hsId, metrics4gFinal);
             }
-
-            // 3. Try Server API in parallel
-            let serverMetrics = null;
-            try {
-                const res = await api.extractHotspotData(hsName, files5g, files4g);
-                if (res && res.metrics) serverMetrics = res.metrics;
-            } catch (srvErr) {
-                console.warn("Server OCR call skipped:", srvErr);
-            }
-
-            // 4. Combine real image scanned values
-            const combinedExtracted = {
-                gnb: metrics5g.gnb || (serverMetrics ? serverMetrics.gnb : null),
-                cid_5g: metrics5g.cid || (serverMetrics ? serverMetrics.cid_5g : null),
-                pci_5g: metrics5g.pci || (serverMetrics ? serverMetrics.pci_5g : null),
-                band_5g: metrics5g.band || (serverMetrics ? serverMetrics.band_5g : null),
-                rsrp_5g: metrics5g.rsrp || (serverMetrics ? serverMetrics.rsrp_5g : null),
-                rsrq_5g: metrics5g.rsrq || (serverMetrics ? serverMetrics.rsrq_5g : null),
-                sinr_5g: metrics5g.sinr || (serverMetrics ? serverMetrics.sinr_5g : null),
-                dl_mb_5g: metrics5g.dl_mb || (serverMetrics ? serverMetrics.dl_mb_5g : null),
-                ul_mb_5g: metrics5g.ul_mb || (serverMetrics ? serverMetrics.ul_mb_5g : null),
-
-                enb: metrics4g.enb || (serverMetrics ? serverMetrics.enb : null),
-                cid: metrics4g.cid || (serverMetrics ? serverMetrics.cid : null),
-                pci_4g: metrics4g.pci || (serverMetrics ? serverMetrics.pci_4g : null),
-                band_4g: metrics4g.band || (serverMetrics ? serverMetrics.band_4g : null),
-                rsrp_4g: metrics4g.rsrp || (serverMetrics ? serverMetrics.rsrp_4g : null),
-                rsrq_4g: metrics4g.rsrq || (serverMetrics ? serverMetrics.rsrq_4g : null),
-                sinr_4g: metrics4g.sinr || (serverMetrics ? serverMetrics.sinr_4g : null),
-                dl_mb_4g: metrics4g.dl_mb || (serverMetrics ? serverMetrics.dl_mb_4g : null),
-                ul_mb_4g: metrics4g.ul_mb || (serverMetrics ? serverMetrics.ul_mb_4g : null)
-            };
-
-            const finalMetrics = this.mergeWithFallback(hsId, combinedExtracted, files5g, files4g);
-            this.applyMetricsToUI(hsId, finalMetrics);
 
             const statusSpan = document.getElementById(`save-status-${hsId}`);
             if (statusSpan) {
-                statusSpan.innerHTML = `<span style="color: var(--success-green); font-weight: 600;">✓ Real Screenshot Text Scanned (Tesseract OCR Engine).</span>`;
+                statusSpan.innerHTML = `<span style="color: var(--success-green); font-weight: 600;">✓ Screenshot Scanned (Tesseract OCR Engine).</span>`;
             }
             this.showToast(`Real Image OCR scanned text from screenshot!`, 'success');
         } catch (error) {
             console.warn("OCR Exception:", error);
-            const fallback = this.generateLocalTelemetryMetrics(hsId, files5g, files4g);
-            this.applyMetricsToUI(hsId, fallback);
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
