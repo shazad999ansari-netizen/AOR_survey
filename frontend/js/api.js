@@ -3,7 +3,7 @@ class APIClient {
     constructor(baseURL = null) {
         if (!baseURL) {
             const origin = (typeof window !== 'undefined' && window.location && window.location.origin) ? window.location.origin : '';
-            if (origin.startsWith('http:') || origin.startsWith('https:')) {
+            if (origin && (origin.includes('onrender.com') || origin.includes('localhost') || origin.includes('127.0.0.1'))) {
                 this.baseURL = origin;
             } else {
                 this.baseURL = 'https://field-engineer-portal.onrender.com';
@@ -29,6 +29,10 @@ class APIClient {
 
     async request(endpoint, options = {}) {
         const headers = options.headers || {};
+        headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+        headers['Pragma'] = 'no-cache';
+        headers['Expires'] = '0';
+
         if (this.token) {
             headers['Authorization'] = `Bearer ${this.token}`;
         }
@@ -43,7 +47,9 @@ class APIClient {
             headers
         };
 
-        const targetUrl = endpoint.startsWith('http') ? endpoint : `${this.baseURL}${endpoint}`;
+        const separator = endpoint.includes('?') ? '&' : '?';
+        const endpointWithTimestamp = `${endpoint}${separator}_t=${Date.now()}`;
+        const targetUrl = endpointWithTimestamp.startsWith('http') ? endpointWithTimestamp : `${this.baseURL}${endpointWithTimestamp}`;
         const response = await fetch(targetUrl, config);
         
         if (response.status === 401) {
