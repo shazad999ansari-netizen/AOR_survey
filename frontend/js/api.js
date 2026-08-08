@@ -58,20 +58,27 @@ class APIClient {
             throw new Error('Session expired. Please request a new OTP code.');
         }
 
+        if (!response.ok) {
+            let errorMsg = `API Request Failed (${response.status})`;
+            try {
+                const errData = await response.json();
+                errorMsg = errData.detail || errData.message || errorMsg;
+            } catch (e) {
+                try {
+                    const txt = await response.text();
+                    if (txt) errorMsg = txt;
+                } catch (e2) {}
+            }
+            throw new Error(errorMsg);
+        }
+
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('application/json')) {
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.detail || data.message || 'API Request Failed');
-            }
-            return data;
+            return await response.json();
         } else if (contentType.includes('text/csv') || contentType.includes('application/pdf')) {
-            if (!response.ok) throw new Error('Export download failed');
             return await response.blob();
         } else {
-            const text = await response.text();
-            if (!response.ok) throw new Error(text || 'HTTP Request Failed');
-            return text;
+            return await response.blob();
         }
     }
 

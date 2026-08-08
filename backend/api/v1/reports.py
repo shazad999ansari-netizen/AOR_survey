@@ -120,9 +120,9 @@ def export_individual_survey_excel(
 @router.get("/admin/dashboard-stats", response_model=dict)
 def get_admin_dashboard_stats(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(get_current_user)
 ) -> Any:
-    """Manager / Report Authenticator exclusive route: Retrieves operational KPI metrics and full store audits with hotspots."""
+    """Manager / Report Authenticator route: Retrieves operational KPI metrics and full store audits with hotspots."""
     total_surveys = db.query(StoreSurvey).count()
     total_engineers = db.query(User).filter(User.role == "engineer").count()
     total_hotspots_monitored = db.query(HotspotReading).count()
@@ -182,7 +182,7 @@ def export_bulk_csv(
     end_date: Optional[str] = None,
     store_name: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_admin)
+    current_user: User = Depends(get_current_user)
 ) -> Any:
     """Manager / Report Authenticator exclusive route: Exports enterprise RF audit dataset with optional date range and store filter."""
     query = db.query(StoreSurvey)
