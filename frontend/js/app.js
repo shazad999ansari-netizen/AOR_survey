@@ -45,22 +45,44 @@ class FieldPortalApp {
                 </div>
 
                 <div class="hardware-grid" style="margin-top: 0; margin-bottom: 1.5rem;">
-                    <div class="dropzone-box" id="drop-5g-${hs.id}" onclick="document.getElementById('file-5g-${hs.id}').click();">
+                    <!-- 5G Telemetry Dropzone -->
+                    <div class="dropzone-box" id="drop-5g_telemetry-${hs.id}" onclick="document.getElementById('file-5g_telemetry-${hs.id}').click();">
                         <div class="dropzone-icon">📱</div>
-                        <div style="font-weight: 700; font-size: 0.95rem; color: var(--accent-cyan);">Upload 5G Screenshots</div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">Up to 2 Files: G-NetTrack + Speedtest</div>
-                        <div id="badge-5g-${hs.id}" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); margin-top: 6px;"></div>
-                        <div id="thumbs-5g-${hs.id}" style="display: flex; gap: 6px; justify-content: center; margin-top: 6px; flex-wrap: wrap;"></div>
-                        <input type="file" id="file-5g-${hs.id}" accept="image/*" multiple style="display: none;" onchange="app.handleHotspotSnap(this, ${hs.id}, '5g')">
+                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--accent-cyan);">5G Telemetry Screenshot</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">G-NetTrack RF Metrics</div>
+                        <div id="badge-5g_telemetry-${hs.id}" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); margin-top: 4px;"></div>
+                        <div id="thumbs-5g_telemetry-${hs.id}" style="display: flex; gap: 4px; justify-content: center; margin-top: 4px; flex-wrap: wrap;"></div>
+                        <input type="file" id="file-5g_telemetry-${hs.id}" accept="image/*" style="display: none;" onchange="app.handleHotspotSnap(this, ${hs.id}, '5g_telemetry')">
                     </div>
 
-                    <div class="dropzone-box" id="drop-4g-${hs.id}" onclick="document.getElementById('file-4g-${hs.id}').click();" style="border-color: hsla(265, 89%, 66%, 0.4);">
+                    <!-- 5G Speedtest Dropzone -->
+                    <div class="dropzone-box" id="drop-5g_speedtest-${hs.id}" onclick="document.getElementById('file-5g_speedtest-${hs.id}').click();" style="border-color: hsla(190, 95%, 48%, 0.4);">
+                        <div class="dropzone-icon" style="color: var(--accent-cyan);">⚡</div>
+                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--accent-cyan);">5G Speedtest Screenshot</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">DL & UL Speed Test</div>
+                        <div id="badge-5g_speedtest-${hs.id}" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); margin-top: 4px;"></div>
+                        <div id="thumbs-5g_speedtest-${hs.id}" style="display: flex; gap: 4px; justify-content: center; margin-top: 4px; flex-wrap: wrap;"></div>
+                        <input type="file" id="file-5g_speedtest-${hs.id}" accept="image/*" style="display: none;" onchange="app.handleHotspotSnap(this, ${hs.id}, '5g_speedtest')">
+                    </div>
+
+                    <!-- 4G Telemetry Dropzone -->
+                    <div class="dropzone-box" id="drop-4g_telemetry-${hs.id}" onclick="document.getElementById('file-4g_telemetry-${hs.id}').click();" style="border-color: hsla(265, 89%, 66%, 0.4);">
                         <div class="dropzone-icon" style="color: var(--accent-violet);">📶</div>
-                        <div style="font-weight: 700; font-size: 0.95rem; color: var(--accent-violet);">Upload 4G Screenshots</div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">Up to 2 Files: G-NetTrack + Speedtest</div>
-                        <div id="badge-4g-${hs.id}" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-violet); margin-top: 6px;"></div>
-                        <div id="thumbs-4g-${hs.id}" style="display: flex; gap: 6px; justify-content: center; margin-top: 6px; flex-wrap: wrap;"></div>
-                        <input type="file" id="file-4g-${hs.id}" accept="image/*" multiple style="display: none;" onchange="app.handleHotspotSnap(this, ${hs.id}, '4g')">
+                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--accent-violet);">4G Telemetry Screenshot</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">G-NetTrack RF Metrics</div>
+                        <div id="badge-4g_telemetry-${hs.id}" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-violet); margin-top: 4px;"></div>
+                        <div id="thumbs-4g_telemetry-${hs.id}" style="display: flex; gap: 4px; justify-content: center; margin-top: 4px; flex-wrap: wrap;"></div>
+                        <input type="file" id="file-4g_telemetry-${hs.id}" accept="image/*" style="display: none;" onchange="app.handleHotspotSnap(this, ${hs.id}, '4g_telemetry')">
+                    </div>
+
+                    <!-- 4G Speedtest Dropzone -->
+                    <div class="dropzone-box" id="drop-4g_speedtest-${hs.id}" onclick="document.getElementById('file-4g_speedtest-${hs.id}').click();" style="border-color: hsla(265, 89%, 66%, 0.4);">
+                        <div class="dropzone-icon" style="color: var(--accent-violet);">🚀</div>
+                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--accent-violet);">4G Speedtest Screenshot</div>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">DL & UL Speed Test</div>
+                        <div id="badge-4g_speedtest-${hs.id}" style="font-size: 0.8rem; font-weight: 700; color: var(--accent-violet); margin-top: 4px;"></div>
+                        <div id="thumbs-4g_speedtest-${hs.id}" style="display: flex; gap: 4px; justify-content: center; margin-top: 4px; flex-wrap: wrap;"></div>
+                        <input type="file" id="file-4g_speedtest-${hs.id}" accept="image/*" style="display: none;" onchange="app.handleHotspotSnap(this, ${hs.id}, '4g_speedtest')">
                     </div>
                 </div>
 
@@ -106,8 +128,12 @@ class FieldPortalApp {
                                     <td style="font-size: 0.8rem; color: var(--text-secondary);">RSRQ / SINR: <span id="cell-${hs.id}-rsrq_4g">-</span> / <span id="cell-${hs.id}-sinr_4g">-</span></td>
                                 </tr>
                                 <tr>
-                                    <td style="font-size: 0.85rem; color: var(--text-secondary);">DL / UL Speed: <span id="cell-${hs.id}-dl_mb_5g" contenteditable="true" style="color: var(--accent-cyan); font-weight: 700;">-</span> Mbps / <span id="cell-${hs.id}-ul_mb_5g" contenteditable="true" style="color: var(--accent-cyan); font-weight: 700;">-</span> Mbps</td>
-                                    <td style="font-size: 0.85rem; color: var(--text-secondary);">DL / UL Speed: <span id="cell-${hs.id}-dl_mb_4g" contenteditable="true" style="color: var(--accent-violet); font-weight: 700;">-</span> Mbps / <span id="cell-${hs.id}-ul_mb_4g" contenteditable="true" style="color: var(--accent-violet); font-weight: 700;">-</span> Mbps</td>
+                                    <td style="font-size: 0.85rem; color: var(--text-secondary);"><strong>Download Speed (DL):</strong> <span id="cell-${hs.id}-dl_mb_5g" contenteditable="true" style="color: var(--accent-cyan); font-weight: 700;">-</span> Mbps</td>
+                                    <td style="font-size: 0.85rem; color: var(--text-secondary);"><strong>Download Speed (DL):</strong> <span id="cell-${hs.id}-dl_mb_4g" contenteditable="true" style="color: var(--accent-violet); font-weight: 700;">-</span> Mbps</td>
+                                </tr>
+                                <tr>
+                                    <td style="font-size: 0.85rem; color: var(--text-secondary);"><strong>Upload Speed (UL):</strong> <span id="cell-${hs.id}-ul_mb_5g" contenteditable="true" style="color: var(--accent-cyan); font-weight: 700;">-</span> Mbps</td>
+                                    <td style="font-size: 0.85rem; color: var(--text-secondary);"><strong>Upload Speed (UL):</strong> <span id="cell-${hs.id}-ul_mb_4g" contenteditable="true" style="color: var(--accent-violet); font-weight: 700;">-</span> Mbps</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -405,37 +431,48 @@ class FieldPortalApp {
         }
     }
 
-    handleHotspotSnap(input, hsId, tech) {
+    handleHotspotSnap(input, hsId, techKey) {
         const selectedFiles = Array.from(input.files).slice(0, 2);
         if (selectedFiles.length === 0) return;
 
         if (!this.hotspotsData[hsId]) this.hotspotsData[hsId] = {};
-        this.hotspotsData[hsId][`files_${tech}`] = selectedFiles;
+        this.hotspotsData[hsId][`files_${techKey}`] = selectedFiles;
+
+        const ds = this.hotspotsData[hsId];
+        ds.files_5g = [
+            ...(ds.files_5g_telemetry || []),
+            ...(ds.files_5g_speedtest || []),
+            ...(ds.files_5g || [])
+        ].filter((f, idx, self) => self.indexOf(f) === idx);
+
+        ds.files_4g = [
+            ...(ds.files_4g_telemetry || []),
+            ...(ds.files_4g_speedtest || []),
+            ...(ds.files_4g || [])
+        ].filter((f, idx, self) => self.indexOf(f) === idx);
 
         // Render visual badge counter
-        const badge = document.getElementById(`badge-${tech}-${hsId}`);
+        const badge = document.getElementById(`badge-${techKey}-${hsId}`);
         if (badge) {
-            badge.innerText = selectedFiles.length > 1 
-                ? `✓ 2 Files Selected (Telemetry + Speedtest)` 
-                : `✓ 1 File Selected`;
+            badge.innerText = `✓ ${selectedFiles.length} File Attached`;
         }
 
         // Render multi-thumbnail preview gallery
-        const thumbsContainer = document.getElementById(`thumbs-${tech}-${hsId}`);
+        const thumbsContainer = document.getElementById(`thumbs-${techKey}-${hsId}`);
         if (thumbsContainer) {
             thumbsContainer.innerHTML = '';
             selectedFiles.forEach(file => {
                 const img = document.createElement('img');
                 img.src = URL.createObjectURL(file);
-                img.style.maxWidth = '100px';
-                img.style.maxHeight = '80px';
+                img.style.maxWidth = '90px';
+                img.style.maxHeight = '70px';
                 img.style.borderRadius = '6px';
                 img.style.border = '1px solid var(--border-glass)';
                 thumbsContainer.appendChild(img);
             });
         }
         
-        this.showToast(`${selectedFiles.length} ${tech.toUpperCase()} screenshot(s) attached. Ready for Vision AI.`, 'success');
+        this.showToast(`${techKey.replace('_', ' ').toUpperCase()} screenshot attached. Ready for Vision AI.`, 'success');
     }
 
     applyMetricsToUI(hsId, m) {
@@ -462,8 +499,11 @@ class FieldPortalApp {
             }
         };
 
-        // Populate 5G Extracted Telemetry ONLY if 5G values are present in m
-        if (m.gnb !== undefined || m.cid_5g !== undefined || m.pci_5g !== undefined || m.rsrp_5g !== undefined) {
+        // Populate 5G Extracted Telemetry & Speedtest speeds
+        const has5gData = m.gnb !== undefined || m.cid_5g !== undefined || m.pci_5g !== undefined || 
+                          m.rsrp_5g !== undefined || m.dl_mb_5g !== undefined || m.ul_mb_5g !== undefined || 
+                          m.dl_mb !== undefined || m.ul_mb !== undefined;
+        if (has5gData) {
             updateCell('gnb', getVal(['gnb', 'gnb_id', 'gNodeB']));
             updateCell('cid_5g', getVal(['cid_5g', 'cid', 'cell_id_5g', 'cell_id']));
             updateCell('pci_5g', getVal(['pci_5g', 'pci']));
@@ -475,8 +515,11 @@ class FieldPortalApp {
             updateCell('ul_mb_5g', getVal(['ul_mb_5g', 'ul_mb']));
         }
 
-        // Populate 4G Extracted Telemetry ONLY if 4G values are present in m
-        if (m.enb !== undefined || m.cid_4g !== undefined || m.cid !== undefined || m.pci_4g !== undefined || m.rsrp_4g !== undefined) {
+        // Populate 4G Extracted Telemetry & Speedtest speeds
+        const has4gData = m.enb !== undefined || m.cid_4g !== undefined || m.cid !== undefined || 
+                          m.pci_4g !== undefined || m.rsrp_4g !== undefined || m.dl_mb_4g !== undefined || 
+                          m.ul_mb_4g !== undefined || m.dl_mb !== undefined || m.ul_mb !== undefined;
+        if (has4gData) {
             updateCell('enb', getVal(['enb', 'enb_id', 'eNodeB']));
             updateCell('cid', getVal(['cid', 'cid_4g', 'cell_id_4g', 'cell_id']));
             updateCell('pci_4g', getVal(['pci_4g', 'pci']));
@@ -489,17 +532,22 @@ class FieldPortalApp {
         }
     }
 
-    async cropTopPortionOfImage(file, topRatio = 0.45) {
+    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio) {
         return new Promise((resolve) => {
             try {
                 const img = new Image();
                 img.onload = () => {
                     try {
                         const canvas = document.createElement('canvas');
-                        canvas.width = img.width;
-                        canvas.height = Math.floor(img.height * topRatio);
+                        const startX = Math.floor(img.width * xRatio);
+                        const startY = Math.floor(img.height * yRatio);
+                        const cropW = Math.floor(img.width * wRatio);
+                        const cropH = Math.floor(img.height * hRatio);
+
+                        canvas.width = Math.max(cropW, 10);
+                        canvas.height = Math.max(cropH, 10);
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, img.width, canvas.height, 0, 0, img.width, canvas.height);
+                        ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, cropW, cropH);
                         canvas.toBlob((blob) => {
                             resolve(blob || file);
                         }, 'image/jpeg');
@@ -515,23 +563,94 @@ class FieldPortalApp {
         });
     }
 
-    async performRealImageOCR(file) {
+    async performRealImageOCR(file, mode = 'auto') {
         if (!file) return {};
         try {
             if (typeof Tesseract === 'undefined') return {};
 
-            // 1. Recognize text from full image
-            const resultFull = await Tesseract.recognize(file, 'eng');
-            const textFull = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
-            console.log("Full Image OCR Raw Text Output:\n", textFull);
-
-            const isGNetTrack = /gnettrack|g-nettrack|mcc|tac|gnodeb|enodeb|serving\s*time|cellid/i.test(textFull);
-            const isSpeedtest = /speedtest|download|upload|mbps|jitter|ping\s*ms/i.test(textFull);
-
             const extracted = {};
 
-            // A. If Image is G-NetTrack -> Extract Cell Telemetry ONLY (Never extract speed from G-NetTrack)
-            if (isGNetTrack || !isSpeedtest) {
+            // ===== SPEEDTEST MODE: Crop-based extraction (most reliable) =====
+            if (mode === 'speedtest') {
+                console.log('[OCR Speedtest] Starting crop-based speed extraction...');
+                let dlVal = null;
+                let ulVal = null;
+
+                // Ookla Speedtest Layout (consistent across all screenshots):
+                // - Download number box: x=3%, y=8%, width=46%, height=14%
+                // - Upload number box:   x=51%, y=8%, width=46%, height=14%
+                // These crop regions isolate ONLY the large speed numbers,
+                // completely excluding Ping/Jitter/Ads below.
+
+                // Crop and OCR the Download box
+                try {
+                    const dlCrop = await this.cropRegionOfImage(file, 0.03, 0.08, 0.46, 0.14);
+                    const dlResult = await Tesseract.recognize(dlCrop, 'eng');
+                    const dlText = (dlResult && dlResult.data && dlResult.data.text) ? dlResult.data.text : '';
+                    console.log('[OCR Speedtest] Download crop text:', JSON.stringify(dlText));
+
+                    // Extract the largest/first number from the crop (this IS the download speed)
+                    const dlNums = dlText.match(/(\d{1,4}(?:\.\d{1,2})?)/g);
+                    if (dlNums) {
+                        // Pick the number that looks most like a speed value (>= 1.0)
+                        for (const ns of dlNums) {
+                            const v = parseFloat(ns);
+                            if (!isNaN(v) && v >= 1.0 && v < 5000) { dlVal = v; break; }
+                        }
+                    }
+                } catch (e) { console.warn('[OCR Speedtest] Download crop failed:', e); }
+
+                // Crop and OCR the Upload box
+                try {
+                    const ulCrop = await this.cropRegionOfImage(file, 0.51, 0.08, 0.46, 0.14);
+                    const ulResult = await Tesseract.recognize(ulCrop, 'eng');
+                    const ulText = (ulResult && ulResult.data && ulResult.data.text) ? ulResult.data.text : '';
+                    console.log('[OCR Speedtest] Upload crop text:', JSON.stringify(ulText));
+
+                    const ulNums = ulText.match(/(\d{1,4}(?:\.\d{1,2})?)/g);
+                    if (ulNums) {
+                        for (const ns of ulNums) {
+                            const v = parseFloat(ns);
+                            if (!isNaN(v) && v >= 0.1 && v < 2000) { ulVal = v; break; }
+                        }
+                    }
+                } catch (e) { console.warn('[OCR Speedtest] Upload crop failed:', e); }
+
+                // Fallback: wider crop with both boxes together (y=7% to y=22%)
+                if (dlVal === null || ulVal === null) {
+                    try {
+                        const wideCrop = await this.cropRegionOfImage(file, 0.02, 0.07, 0.96, 0.15);
+                        const wideResult = await Tesseract.recognize(wideCrop, 'eng');
+                        const wideText = (wideResult && wideResult.data && wideResult.data.text) ? wideResult.data.text : '';
+                        console.log('[OCR Speedtest] Wide crop text:', JSON.stringify(wideText));
+
+                        // Remove "Download", "Upload", "Mbps" labels, keep only numbers
+                        const numbersOnly = wideText.replace(/download|upload|mbps|[a-z]/gi, ' ');
+                        const allNums = numbersOnly.match(/(\d{1,4}(?:\.\d{1,2})?)/g);
+                        if (allNums) {
+                            const speeds = allNums.map(n => parseFloat(n)).filter(v => !isNaN(v) && v >= 0.1 && v < 5000);
+                            if (dlVal === null && speeds.length >= 1) dlVal = speeds[0];
+                            if (ulVal === null && speeds.length >= 2) ulVal = speeds[1];
+                        }
+                    } catch (e) { console.warn('[OCR Speedtest] Wide crop failed:', e); }
+                }
+
+                console.log(`[OCR Speedtest] Final result: DL=${dlVal}, UL=${ulVal}`);
+                if (dlVal !== null) extracted.dl_mb = dlVal;
+                if (ulVal !== null) extracted.ul_mb = ulVal;
+
+                return extracted;
+            }
+
+            // ===== TELEMETRY / AUTO MODE: Full image text scan =====
+            const resultFull = await Tesseract.recognize(file, 'eng');
+            const textFull = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
+            console.log(`[OCR] Raw text [mode=${mode}]:`, textFull.substring(0, 300));
+
+            const isGNetTrack = /gnettrack|g-nettrack|mcc|mnc|tac|gnodeb|enodeb|serving|cellid|rsrp|rsrq|sinr|snr/i.test(textFull);
+
+            // G-NetTrack: Extract Cell Telemetry ONLY
+            if (isGNetTrack || mode === 'telemetry') {
                 const gnbM = textFull.match(/(?:gnb|gnodeb)[:\s]+(\d+)/i);
                 const enbM = textFull.match(/(?:enb|enodeb)[:\s]+(\d+)/i);
                 const cidM = textFull.match(/(?:cid|cell\s*id)[:\s]+(\d+)/i);
@@ -555,34 +674,11 @@ class FieldPortalApp {
                 if (snrM)  extracted.sinr = parseFloat(snrM[1]);
             }
 
-            // B. If Image is Speedtest -> Crop Top 45% & Extract Speedtest Metrics ONLY
-            if (isSpeedtest) {
-                const croppedFile = await this.cropTopPortionOfImage(file, 0.45);
-                const resultTop = await Tesseract.recognize(croppedFile, 'eng');
-                const textTop = (resultTop && resultTop.data && resultTop.data.text) ? resultTop.data.text : textFull;
-                console.log("Speedtest Top Cropped OCR Text Output:\n", textTop);
-
-                let dlVal = null;
-                let ulVal = null;
-
-                const dlBlock = textTop.match(/Download[\s\S]{1,40}?(\d+(?:\.\d+)?)/i);
-                if (dlBlock) dlVal = parseFloat(dlBlock[1]);
-
-                const ulBlock = textTop.match(/Upload[\s\S]{1,40}?(\d+(?:\.\d+)?)/i);
-                if (ulBlock) ulVal = parseFloat(ulBlock[1]);
-
-                const mbpsMatches = textTop.match(/(\d+(?:\.\d+)?)\s*Mbps/gi);
-                if (mbpsMatches && mbpsMatches.length >= 1 && dlVal === null) {
-                    const numMatch = mbpsMatches[0].match(/(\d+(?:\.\d+)?)/);
-                    if (numMatch) dlVal = parseFloat(numMatch[1]);
-                }
-                if (mbpsMatches && mbpsMatches.length >= 2 && ulVal === null) {
-                    const numMatch = mbpsMatches[1].match(/(\d+(?:\.\d+)?)/);
-                    if (numMatch) ulVal = parseFloat(numMatch[1]);
-                }
-
-                if (dlVal !== null && !isNaN(dlVal)) extracted.dl_mb = dlVal;
-                if (ulVal !== null && !isNaN(ulVal)) extracted.ul_mb = ulVal;
+            // AUTO mode: If it looks like a Speedtest, use crop-based extraction
+            if (mode === 'auto' && !isGNetTrack && /speedtest|download|upload|mbps/i.test(textFull)) {
+                const speedResult = await this.performRealImageOCR(file, 'speedtest');
+                if (speedResult.dl_mb !== undefined) extracted.dl_mb = speedResult.dl_mb;
+                if (speedResult.ul_mb !== undefined) extracted.ul_mb = speedResult.ul_mb;
             }
 
             return extracted;
@@ -597,79 +693,104 @@ class FieldPortalApp {
         const hsName = hsDef ? hsDef.name : `Hotspot ${hsId}`;
 
         const dataStore = this.hotspotsData[hsId] || {};
-        const files5g = dataStore.files_5g || [];
-        const files4g = dataStore.files_4g || [];
+        const files5gTel = dataStore.files_5g_telemetry || [];
+        const files5gSpd = dataStore.files_5g_speedtest || [];
+        const files4gTel = dataStore.files_4g_telemetry || [];
+        const files4gSpd = dataStore.files_4g_speedtest || [];
+
+        const files5g = [...files5gTel, ...files5gSpd, ...(dataStore.files_5g || [])];
+        const files4g = [...files4gTel, ...files4gSpd, ...(dataStore.files_4g || [])];
 
         const btn = document.getElementById(`btn-ocr-${hsId}`);
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="spinner"></span> Scanning Image Text via Real OCR...';
-        btn.disabled = true;
+        const originalText = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<span class="spinner"></span> Scanning via Vision AI...';
+            btn.disabled = true;
+        }
 
         try {
-            // 1. Scan 5G Screenshots strictly for 5G metrics (preserve Speedtest non-zero speeds)
-            if (files5g.length > 0) {
-                let m5g = {};
-                for (let f of files5g) {
-                    const ocr = await this.performRealImageOCR(f);
-                    for (let k in ocr) {
-                        if (ocr[k] !== null && ocr[k] !== undefined && ocr[k] !== 0) {
-                            m5g[k] = ocr[k];
-                        } else if (m5g[k] === undefined || m5g[k] === null) {
-                            m5g[k] = ocr[k];
-                        }
+            // 1. Invoke Backend Vision AI API endpoint first
+            if (files5g.length > 0 || files4g.length > 0) {
+                try {
+                    const apiResult = await api.extractHotspotData(hsName, files5g, files4g);
+                    if (apiResult && apiResult.success && apiResult.metrics) {
+                        this.applyMetricsToUI(hsId, apiResult.metrics);
+                        if (apiResult.snap_url_5g) dataStore.snap_url_5g = apiResult.snap_url_5g;
+                        if (apiResult.snap_url_4g) dataStore.snap_url_4g = apiResult.snap_url_4g;
                     }
+                } catch (apiErr) {
+                    console.warn("Backend Vision AI API endpoint unreachable:", apiErr);
                 }
-                const metrics5gFinal = {
-                    gnb: m5g.gnb || m5g.enb,
-                    cid_5g: m5g.cid,
-                    pci_5g: m5g.pci,
-                    band_5g: m5g.band ? (m5g.band.startsWith('N') ? m5g.band : `n${m5g.band}`) : null,
-                    rsrp_5g: m5g.rsrp,
-                    rsrq_5g: m5g.rsrq,
-                    sinr_5g: m5g.sinr,
-                    dl_mb_5g: m5g.dl_mb,
-                    ul_mb_5g: m5g.ul_mb
-                };
-                this.applyMetricsToUI(hsId, metrics5gFinal);
             }
 
-            // 2. Scan 4G Screenshots strictly for 4G metrics (preserve Speedtest non-zero speeds)
-            if (files4g.length > 0) {
-                let m4g = {};
-                for (let f of files4g) {
-                    const ocr = await this.performRealImageOCR(f);
-                    for (let k in ocr) {
-                        if (ocr[k] !== null && ocr[k] !== undefined && ocr[k] !== 0) {
-                            m4g[k] = ocr[k];
-                        } else if (m4g[k] === undefined || m4g[k] === null) {
-                            m4g[k] = ocr[k];
-                        }
+            // 2. OCR on 5G Telemetry Screenshot
+            for (let f of files5gTel) {
+                const ocr = await this.performRealImageOCR(f, 'telemetry');
+                this.applyMetricsToUI(hsId, {
+                    gnb: ocr.gnb, cid_5g: ocr.cid, pci_5g: ocr.pci,
+                    band_5g: ocr.band ? (ocr.band.startsWith('N') ? ocr.band : `n${ocr.band}`) : null,
+                    rsrp_5g: ocr.rsrp, rsrq_5g: ocr.rsrq, sinr_5g: ocr.sinr
+                });
+            }
+
+            // 3. OCR on 5G Speedtest Screenshot (Dedicated Speedtest Scanner)
+            for (let f of files5gSpd) {
+                const ocr = await this.performRealImageOCR(f, 'speedtest');
+                if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
+                    this.applyMetricsToUI(hsId, { dl_mb_5g: ocr.dl_mb, ul_mb_5g: ocr.ul_mb });
+                }
+            }
+
+            // 4. OCR on 4G Telemetry Screenshot
+            for (let f of files4gTel) {
+                const ocr = await this.performRealImageOCR(f, 'telemetry');
+                this.applyMetricsToUI(hsId, {
+                    enb: ocr.enb, cid: ocr.cid, pci_4g: ocr.pci,
+                    band_4g: ocr.band ? (ocr.band.startsWith('B') ? ocr.band : `B${ocr.band}`) : null,
+                    rsrp_4g: ocr.rsrp, rsrq_4g: ocr.rsrq, sinr_4g: ocr.sinr
+                });
+            }
+
+            // 5. OCR on 4G Speedtest Screenshot (Dedicated Speedtest Scanner)
+            for (let f of files4gSpd) {
+                const ocr = await this.performRealImageOCR(f, 'speedtest');
+                if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
+                    this.applyMetricsToUI(hsId, { dl_mb_4g: ocr.dl_mb, ul_mb_4g: ocr.ul_mb });
+                }
+            }
+
+            // Fallback for generic dropzones
+            if (files5gSpd.length === 0 && files5g.length > 0) {
+                for (let f of files5g) {
+                    const ocr = await this.performRealImageOCR(f, 'auto');
+                    if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
+                        this.applyMetricsToUI(hsId, { dl_mb_5g: ocr.dl_mb, ul_mb_5g: ocr.ul_mb });
                     }
                 }
-                const metrics4gFinal = {
-                    enb: m4g.enb || m4g.gnb,
-                    cid: m4g.cid,
-                    pci_4g: m4g.pci,
-                    band_4g: m4g.band ? (m4g.band.startsWith('B') ? m4g.band : `B${m4g.band}`) : null,
-                    rsrp_4g: m4g.rsrp,
-                    rsrq_4g: m4g.rsrq,
-                    sinr_4g: m4g.sinr,
-                    dl_mb_4g: m4g.dl_mb,
-                    ul_mb_4g: m4g.ul_mb
-                };
-                this.applyMetricsToUI(hsId, metrics4gFinal);
+            }
+
+            if (files4gSpd.length === 0 && files4g.length > 0) {
+                for (let f of files4g) {
+                    const ocr = await this.performRealImageOCR(f, 'auto');
+                    if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
+                        this.applyMetricsToUI(hsId, { dl_mb_4g: ocr.dl_mb, ul_mb_4g: ocr.ul_mb });
+                    }
+                }
             }
 
             const statusSpan = document.getElementById(`save-status-${hsId}`);
             if (statusSpan) {
-                statusSpan.innerHTML = `<span style="color: var(--success-green); font-weight: 600;">✓ Screenshot Scanned (Tesseract OCR Engine).</span>`;
+                statusSpan.innerHTML = `<span style="color: var(--success-green); font-weight: 600;">✓ Vision AI & Speedtest Extracted!</span>`;
             }
-            this.showToast(`Real Image OCR scanned text from screenshot!`, 'success');
+            this.showToast(`Vision AI successfully parsed telemetry & Speedtest speeds!`, 'success');
         } catch (error) {
             console.warn("OCR Exception:", error);
+            this.showToast(`OCR Error: ${error.message}`, 'error');
         } finally {
-            btn.innerHTML = originalText;
-            btn.disabled = false;
+            if (btn) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
         }
     }
 

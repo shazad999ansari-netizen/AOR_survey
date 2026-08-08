@@ -55,27 +55,51 @@ class VisionExtractorService:
 
 Your task is to extract telemetry parameters and exact Speedtest Download & Upload speeds using strict spatial anchors.
 
-STRICT SPATIAL ANCHORING RULES FOR SPEEDTEST SCREENSHOTS:
-1. DOWNLOAD SPEED:
-   - Locate the container/box with the header "Download" (top-left section).
-   - Extract ONLY the numerical value directly UNDER the "Download" label and ABOVE the "Mbps" unit.
-   - Example: In the top-left box, extract "169" or "38.3".
+STRICT JSON SCHEMA KEYS TO USE IN YOUR OUTPUT OBJECT:
+For 5G screenshots:
+- "band_5g": string (e.g. "n78")
+- "rsrp_5g": float (e.g. -78.5)
+- "rsrq_5g": float (e.g. -10.5)
+- "sinr_5g": float (e.g. 22.0)
+- "gnb": integer (e.g. 1048576)
+- "cid_5g": integer (e.g. 14)
+- "pci_5g": integer (e.g. 412)
+- "dl_mb_5g": float (EXACT 5G Speedtest Download speed in Mbps, e.g., 245.5)
+- "ul_mb_5g": float (EXACT 5G Speedtest Upload speed in Mbps, e.g., 42.1)
+- "ping_ms_5g": float (e.g. 18.0)
+- "jitter_ms_5g": float (e.g. 2.5)
 
-2. UPLOAD SPEED:
-   - Locate the container/box with the header "Upload" (top-right section).
-   - Extract ONLY the numerical value directly UNDER the "Upload" label and ABOVE the "Mbps" unit.
-   - Preserve decimal points accurately (e.g., extract "3.51" or "3.59", NOT rounding off).
+For 4G screenshots:
+- "band_4g": string (e.g. "B3")
+- "rsrp_4g": float (e.g. -85.2)
+- "rsrq_4g": float (e.g. -12.0)
+- "sinr_4g": float (e.g. 14.5)
+- "enb": integer (e.g. 205412)
+- "cid": integer (e.g. 14)
+- "pci_4g": integer (e.g. 210)
+- "dl_mb_4g": float (EXACT 4G Speedtest Download speed in Mbps, e.g., 54.2)
+- "ul_mb_4g": float (EXACT 4G Speedtest Upload speed in Mbps, e.g., 18.5)
+- "ping_ms_4g": float (e.g. 28.0)
+- "jitter_ms_4g": float (e.g. 4.1)
+
+STRICT SPATIAL ANCHORING RULES FOR SPEEDTEST SCREENSHOTS:
+1. DOWNLOAD SPEED (dl_mb_5g or dl_mb_4g):
+   - Locate the box/section labeled "Download" or "DOWNLOAD" (inside top-left box).
+   - Extract ONLY the large numerical value directly inside the "Download" box (e.g., 359 or 12.0).
+   - DO NOT extract Ping ms values (e.g., 23 ms or 31 ms) or Jitter values located below the boxes.
+
+2. UPLOAD SPEED (ul_mb_5g or ul_mb_4g):
+   - Locate the box/section labeled "Upload" or "UPLOAD" (inside top-right box).
+   - Extract ONLY the large numerical value directly inside the "Upload" box (e.g., 55.9 or 15.0).
+   - DO NOT extract Ping ms values or Jitter values located below the boxes.
 
 3. CRITICAL IGNORE RULES (NOISE REDUCTION):
+   - CRITICAL: Ping values (e.g., "Ping ms 23", "Ping ms 31") and Jitter values (e.g., "Jitter ms 6") appear BELOW the Download/Upload containers. NEVER use Ping or Jitter numbers as Download or Upload speeds!
    - IGNORE ALL promotional banners, advertisements, flight deals, currency symbols (₹, $), shopping discounts, or random numbers (e.g., 10,000, 899.00, 15 GMS) appearing in the middle or bottom of the screenshot.
    - IGNORE status bar items at the very top (time, network speeds like KB/s, battery percentage).
    - Do NOT round off decimal numbers.
 
-TELECOM PARAMETERS FROM G-NETTRACK:
-- If 5G (e.g. Airtel 5G): Extract gnb, cid_5g, pci_5g, band_5g, rsrp_5g, rsrq_5g, sinr_5g, dl_mb_5g, ul_mb_5g.
-- If 4G (e.g. Airtel 4G): Extract enb, cid, pci_4g, band_4g, rsrp_4g, rsrq_4g, sinr_4g, dl_mb_4g, ul_mb_4g.
-
-Return output strictly as a valid JSON object matching the requested schema keys."""
+Return output strictly as a valid JSON object matching these exact field names."""
 
             messages = [{"role": "system", "content": system_prompt}]
             content_array = [{"type": "text", "text": f"Extract telemetry & speedtest parameters for hotspot location: {hotspot_name}"}]
