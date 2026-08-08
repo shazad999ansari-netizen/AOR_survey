@@ -709,11 +709,21 @@ class FieldPortalApp {
         }
 
         try {
-            // 1. Invoke Backend Vision AI API endpoint first
+            // 1. Check if user attached any files to THIS specific hotspot
+            if (files5g.length === 0 && files4g.length === 0) {
+                this.showToast(`⚠️ Please attach at least 1 screenshot for ${hsName} first.`, 'warning');
+                const statusSpan = document.getElementById(`save-status-${hsId}`);
+                if (statusSpan) {
+                    statusSpan.innerHTML = `<span style="color: var(--text-secondary);">No screenshots attached for ${hsName}. Fields remain blank.</span>`;
+                }
+                return;
+            }
+
+            // 2. Invoke Backend Vision AI API endpoint (only use if real AI provider returned)
             if (files5g.length > 0 || files4g.length > 0) {
                 try {
                     const apiResult = await api.extractHotspotData(hsName, files5g, files4g);
-                    if (apiResult && apiResult.success && apiResult.metrics) {
+                    if (apiResult && apiResult.success && apiResult.metrics && apiResult.provider && !apiResult.provider.includes('Mock') && !apiResult.provider.includes('Fallback')) {
                         this.applyMetricsToUI(hsId, apiResult.metrics);
                         if (apiResult.snap_url_5g) dataStore.snap_url_5g = apiResult.snap_url_5g;
                         if (apiResult.snap_url_4g) dataStore.snap_url_4g = apiResult.snap_url_4g;
@@ -723,7 +733,7 @@ class FieldPortalApp {
                 }
             }
 
-            // 2. OCR on 5G Telemetry Screenshot
+            // 3. OCR on 5G Telemetry Screenshot
             for (let f of files5gTel) {
                 const ocr = await this.performRealImageOCR(f, 'telemetry');
                 this.applyMetricsToUI(hsId, {
@@ -733,7 +743,7 @@ class FieldPortalApp {
                 });
             }
 
-            // 3. OCR on 5G Speedtest Screenshot (Dedicated Speedtest Scanner)
+            // 4. OCR on 5G Speedtest Screenshot (Dedicated Speedtest Scanner)
             for (let f of files5gSpd) {
                 const ocr = await this.performRealImageOCR(f, 'speedtest');
                 if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
@@ -741,7 +751,7 @@ class FieldPortalApp {
                 }
             }
 
-            // 4. OCR on 4G Telemetry Screenshot
+            // 5. OCR on 4G Telemetry Screenshot
             for (let f of files4gTel) {
                 const ocr = await this.performRealImageOCR(f, 'telemetry');
                 this.applyMetricsToUI(hsId, {
@@ -751,7 +761,7 @@ class FieldPortalApp {
                 });
             }
 
-            // 5. OCR on 4G Speedtest Screenshot (Dedicated Speedtest Scanner)
+            // 6. OCR on 4G Speedtest Screenshot (Dedicated Speedtest Scanner)
             for (let f of files4gSpd) {
                 const ocr = await this.performRealImageOCR(f, 'speedtest');
                 if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
@@ -759,7 +769,7 @@ class FieldPortalApp {
                 }
             }
 
-            // Fallback for generic dropzones
+            // Fallback for generic dropzones if used
             if (files5gSpd.length === 0 && files5g.length > 0) {
                 for (let f of files5g) {
                     const ocr = await this.performRealImageOCR(f, 'auto');
@@ -813,26 +823,30 @@ class FieldPortalApp {
             return txt;
         };
 
-        const m = store.metrics || {};
+        const parseOrNull = (val, isFloat = false) => {
+            if (val === null || val === undefined || val === '-' || val === '' || val === 'null') return null;
+            const num = isFloat ? parseFloat(val) : parseInt(val);
+            return isNaN(num) ? null : num;
+        };
 
         const payload = {
             hotspot_name: hsName,
-            gnb: parseInt(readCell(`cell-${hsId}-gnb`) || m.gnb || 1048576),
-            cid_5g: parseInt(readCell(`cell-${hsId}-cid_5g`) || m.cid_5g || 14),
-            pci_5g: parseInt(readCell(`cell-${hsId}-pci_5g`) || m.pci_5g || 412),
-            band_5g: readCell(`cell-${hsId}-band_5g`) || m.band_5g || "n78",
-            rsrp_5g: parseFloat(readCell(`cell-${hsId}-rsrp_5g`) || m.rsrp_5g || -78.5),
+            gnb: parseOrNull(readCell(`cell-${hsId}-gnb`)),
+            cid_5g: parseOrNull(readCell(`cell-${hsId}-cid_5g`)),
+            pci_5g: parseOrNull(readCell(`cell-${hsId}-pci_5g`)),
+            band_5g: readCell(`cell-${hsId}-band_5g`) || null,
+            rsrp_5g: parseOrNull(readCell(`cell-${hsId}-rsrp_5g`), true),
             
-            enb: parseInt(readCell(`cell-${hsId}-enb`) || m.enb || 205412),
-            cid: parseInt(readCell(`cell-${hsId}-cid`) || m.cid || 14),
-            pci_4g: parseInt(readCell(`cell-${hsId}-pci_4g`) || m.pci_4g || 210),
-            band_4g: readCell(`cell-${hsId}-band_4g`) || m.band_4g || "B3",
-            rsrp_4g: parseFloat(readCell(`cell-${hsId}-rsrp_4g`) || m.rsrp_4g || -85.2),
+            enb: parseOrNull(readCell(`cell-${hsId}-enb`)),
+            cid: parseOrNull(readCell(`cell-${hsId}-cid`)),
+            pci_4g: parseOrNull(readCell(`cell-${hsId}-pci_4g`)),
+            band_4g: readCell(`cell-${hsId}-band_4g`) || null,
+            rsrp_4g: parseOrNull(readCell(`cell-${hsId}-rsrp_4g`), true),
             
-            dl_mb_5g: parseFloat(readCell(`cell-${hsId}-dl_mb_5g`) || m.dl_mb_5g || 580.0),
-            ul_mb_5g: parseFloat(readCell(`cell-${hsId}-ul_mb_5g`) || m.ul_mb_5g || 85.0),
-            dl_mb_4g: parseFloat(readCell(`cell-${hsId}-dl_mb_4g`) || m.dl_mb_4g || 135.0),
-            ul_mb_4g: parseFloat(readCell(`cell-${hsId}-ul_mb_4g`) || m.ul_mb_4g || 38.0),
+            dl_mb_5g: parseOrNull(readCell(`cell-${hsId}-dl_mb_5g`), true),
+            ul_mb_5g: parseOrNull(readCell(`cell-${hsId}-ul_mb_5g`), true),
+            dl_mb_4g: parseOrNull(readCell(`cell-${hsId}-dl_mb_4g`), true),
+            ul_mb_4g: parseOrNull(readCell(`cell-${hsId}-ul_mb_4g`), true),
             
             snap_url_5g: store.snap_url_5g || null,
             snap_url_4g: store.snap_url_4g || null
