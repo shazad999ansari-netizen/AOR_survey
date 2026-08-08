@@ -180,12 +180,18 @@ class APIClient {
         return await this.request('/api/v1/admin/dashboard-stats');
     }
 
-    async downloadBulkCSV() {
-        const blob = await this.request('/api/v1/admin/export-bulk-csv');
+    async downloadBulkCSV(startDate = '', endDate = '', storeName = '') {
+        const queryParams = new URLSearchParams();
+        if (startDate) queryParams.append('start_date', startDate);
+        if (endDate) queryParams.append('end_date', endDate);
+        if (storeName) queryParams.append('store_name', storeName);
+        
+        const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
+        const blob = await this.request(`/api/v1/admin/export-bulk-csv${qs}`);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = "Enterprise_Bulk_RF_Audit_Export.csv";
+        a.download = `Enterprise_Bulk_RF_Audit_Export${startDate ? '_' + startDate : ''}.csv`;
         document.body.appendChild(a);
         a.click();
         a.remove();

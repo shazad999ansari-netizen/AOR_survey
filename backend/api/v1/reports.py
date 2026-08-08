@@ -1,6 +1,5 @@
-import csv
-import io
-from typing import List, Any
+from datetime import datetime
+from typing import List, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response
 from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
@@ -179,11 +178,33 @@ def get_admin_dashboard_stats(
 
 @router.get("/admin/export-bulk-csv", response_class=Response)
 def export_bulk_csv(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    store_name: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_admin)
 ) -> Any:
-    """Manager / Report Authenticator exclusive route: Exports enterprise RF audit dataset as comprehensive Excel CSV."""
-    surveys = db.query(StoreSurvey).order_by(StoreSurvey.created_at.desc()).all()
+    """Manager / Report Authenticator exclusive route: Exports enterprise RF audit dataset with optional date range and store filter."""
+    query = db.query(StoreSurvey)
+
+    if start_date:
+        try:
+            sd = datetime.strptime(start_date, "%Y-%m-%d")
+            query = query.filter(StoreSurvey.created_at >= sd)
+        except Exception:
+            pass
+
+    if end_date:
+        try:
+            ed = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+            query = query.filter(StoreSurvey.created_at <= ed)
+        except Exception:
+            pass
+
+    if store_name and store_name.strip():
+        query = query.filter(StoreSurvey.store_name.ilike(f"%{store_name.strip()}%"))
+
+    surveys = query.order_by(StoreSurvey.created_at.desc()).all()
     
     output = io.StringIO()
     writer = csv.writer(output)

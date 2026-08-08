@@ -911,6 +911,34 @@ class FieldPortalApp {
         }
     }
 
+    async downloadExecutiveExcel() {
+        if (!this.activeSurveyId) {
+            this.showToast('Please create or save store survey in Tab 1 first.', 'error');
+            return;
+        }
+
+        const storeTitle = document.getElementById('current-store-title')?.innerText || 'Audit';
+        const storeName = storeTitle.replace('Store: ', '').trim();
+        const btn = document.getElementById('btn-download-excel');
+        const origText = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.innerHTML = '<span class="spinner"></span> Exporting Excel...';
+            btn.disabled = true;
+        }
+
+        try {
+            await api.downloadSingleExcelReport(this.activeSurveyId, storeName);
+            this.showToast('Store Excel (.csv) Report exported successfully!', 'success');
+        } catch (error) {
+            this.showToast(`Excel export failed: ${error.message}`, 'error');
+        } finally {
+            if (btn) {
+                btn.innerHTML = origText;
+                btn.disabled = false;
+            }
+        }
+    }
+
     async loadAdminDashboard() {
         try {
             const stats = await api.getAdminStats();
@@ -920,10 +948,28 @@ class FieldPortalApp {
             document.getElementById('stat-repeater-rate').innerText = `${stats.repeater_health_rate}%`;
 
             this.allAdminSurveys = stats.recent_surveys || [];
-            this.renderAdminTableRows(this.allAdminSurveys);
+            this.populateAdminStoreFilterOptions(this.allAdminSurveys);
+            this.filterAdminTable();
         } catch (error) {
             this.showToast(`Failed loading metrics: ${error.message}`, 'error');
         }
+    }
+
+    populateAdminStoreFilterOptions(surveys) {
+        const select = document.getElementById('admin-store-filter');
+        if (!select) return;
+        
+        const currentVal = select.value;
+        select.innerHTML = '<option value="">All Stores</option>';
+        
+        const uniqueStores = Array.from(new Set((surveys || []).map(s => s.store_name).filter(Boolean))).sort();
+        uniqueStores.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.innerText = name;
+            if (name === currentVal) opt.selected = true;
+            select.appendChild(opt);
+        });
     }
 
     renderAdminTableRows(surveys) {
@@ -931,7 +977,7 @@ class FieldPortalApp {
         if (!tbody) return;
 
         if (!surveys || surveys.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No store audit entries matching filter.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 2rem; color: var(--text-secondary);">No store audit entries matching selected filter criteria.</td></tr>`;
             return;
         }
 
@@ -964,7 +1010,7 @@ class FieldPortalApp {
                         <button class="btn btn-secondary btn-sm" title="Download Executive PDF" onclick="api.downloadPDFReport(${s.id}, '${cleanStoreName}')">
                             📑 PDF
                         </button>
-                        <button class="btn btn-primary btn-sm" title="Download Individual Excel Sheet" onclick="api.downloadSingleExcelReport(${s.id}, '${cleanStoreName}')">
+                        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #059669;" title="Download Store Excel Sheet" onclick="api.downloadSingleExcelReport(${s.id}, '${cleanStoreName}')">
                             📊 Excel
                         </button>
                         <button class="btn btn-secondary btn-sm" title="Inspect Survey" onclick="app.adminInspectSurvey(${s.id}, '${cleanStoreName}')">
@@ -980,21 +1026,76 @@ class FieldPortalApp {
 
     filterAdminTable() {
         const query = (document.getElementById('admin-search-input')?.value || '').toLowerCase().trim();
+        const startDateStr = document.getElementById('admin-start-date')?.value;
+        const endDateStr = document.getElementById('admin-end-date')?.value;
+        const storeFilter = document.getElementById('admin-store-filter')?.value;
+
         if (!this.allAdminSurveys) return;
 
-        if (!query) {
-            this.renderAdminTableRows(this.allAdminSurveys);
-            return;
+        let filtered = this.allAdminSurveys;
+
+        if (query) {
+            filtered = filtered.filter(s => {
+                const idStr = `#srv-${s.id}`;
+                const name = (s.store_name || '').toLowerCase();
+                const mobile = (s.engineer_mobile || '').toLowerCase();
+                return idStr.includes(query) || name.includes(query) || mobile.includes(query);
+            });
         }
 
-        const filtered = this.allAdminSurveys.filter(s => {
-            const idStr = `#srv-${s.id}`;
-            const name = (s.store_name || '').toLowerCase();
-            const mobile = (s.engineer_mobile || '').toLowerCase();
-            return idStr.includes(query) || name.includes(query) || mobile.includes(query);
-        });
+        if (storeFilter) {
+            filtered = filtered.filter(s => (s.store_name || '').toLowerCase() === storeFilter.toLowerCase());
+        }
+
+        if (startDateStr) {
+            const startDt = new Date(startDateStr);
+            filtered = filtered.filter(s => {
+                if (!s.created_at) return false;
+                const d = new Date(s.created_at);
+                return d >= startDt;
+            });
+        }
+
+        if (endDateStr) {
+            const endDt = new Date(endDateStr);
+            endDt.setHours(23, 59, 59, 999);
+            filtered = filtered.filter(s => {
+                if (!s.created_at) return false;
+                const d = new Date(s.created_at);
+                return d <= endDt;
+            });
+        }
 
         this.renderAdminTableRows(filtered);
+    }
+
+    resetAdminFilters() {
+        const sInput = document.getElementById('admin-search-input');
+        const startDate = document.getElementById('admin-start-date');
+        const endDate = document.getElementById('admin-end-date');
+        const storeSelect = document.getElementById('admin-store-filter');
+
+        if (sInput) sInput.value = '';
+        if (startDate) startDate.value = '';
+        if (endDate) endDate.value = '';
+        if (storeSelect) storeSelect.value = '';
+
+        this.filterAdminTable();
+        this.showToast('Admin filters reset.', 'success');
+    }
+
+    async downloadFilteredExcel() {
+        const startDateStr = document.getElementById('admin-start-date')?.value || '';
+        const endDateStr = document.getElementById('admin-end-date')?.value || '';
+        const storeFilter = document.getElementById('admin-store-filter')?.value || '';
+
+        try {
+            this.showToast('Generating Excel (.csv) export...', 'success');
+            await api.downloadBulkCSV(startDateStr, endDateStr, storeFilter);
+            this.showToast('Master Excel Spreadsheet exported successfully!', 'success');
+        } catch (err) {
+            this.showToast(`Bulk Excel export failed: ${err.message}`, 'error');
+        }
     }
 
     adminInspectSurvey(surveyId, storeName) {

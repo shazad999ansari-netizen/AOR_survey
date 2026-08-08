@@ -218,16 +218,19 @@
 
             <div id="hotspots-container-block"></div>
 
-            <!-- TAB 8: FINAL PREVIEW & EXECUTIVE PDF EXPORT -->
+            <!-- TAB 8: FINAL PREVIEW & EXECUTIVE PDF/EXCEL EXPORT -->
             <div id="tab-8" class="tab-content glass-panel" style="padding: 1.5rem;">
                 <div style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border-glass); padding-bottom: 1rem;">
-                    <span style="color: var(--accent-cyan); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">WeasyPrint Engine Output</span>
-                    <h3 style="font-size: 1.4rem; margin-top: 2px;">Executive Audit Report & PDF Export</h3>
+                    <span style="color: var(--accent-cyan); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Audit Export Center</span>
+                    <h3 style="font-size: 1.4rem; margin-top: 2px;">Executive Audit Report & Export Center (PDF / Excel)</h3>
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;">
+                <div style="display: flex; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap;">
                     <button class="btn btn-primary" id="btn-download-pdf" onclick="app.downloadExecutivePDF()">
-                        📑 Export Executive Audit PDF Report
+                        📑 Export Executive PDF Report
+                    </button>
+                    <button class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #059669;" id="btn-download-excel" onclick="app.downloadExecutiveExcel()">
+                        📊 Export Store Excel (.csv) Report
                     </button>
                     <button class="btn btn-secondary" onclick="app.refreshReportPreview()">
                         🔄 Refresh Live Report Preview
@@ -244,13 +247,13 @@
 
         <!-- 3. REPORT AUTHENTICATOR / OWNER EXECUTIVE COMMAND CENTER -->
         <section id="admin-view" class="view-hidden">
-            <div style="display: flex; justify-content: space-between; align-align: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                 <div>
                     <span style="font-size: 0.75rem; color: var(--accent-violet); font-weight: 700; text-transform: uppercase;">Owner & Report Authenticator Command Center</span>
-                    <h2 style="font-size: 1.6rem; margin-top: 2px;">📊 Master Store Audit Excel Record Sheet</h2>
+                    <h2 style="font-size: 1.6rem; margin-top: 2px;">📊 Master Store Audit Analytics & Exports</h2>
                 </div>
                 <div>
-                    <button class="btn btn-primary" onclick="api.downloadBulkCSV()">
+                    <button class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);" onclick="app.downloadFilteredExcel()">
                         📥 Export Master Excel (.csv) Spreadsheet
                     </button>
                 </div>
@@ -278,11 +281,33 @@
 
             <!-- Master Excel Data Sheet Container -->
             <div class="glass-panel" style="padding: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 10px;">
                     <h3 style="font-size: 1.2rem; font-family: 'Outfit', sans-serif;">📋 Live Store Survey Master Ledger</h3>
                     
-                    <div style="max-width: 320px; width: 100%;">
-                        <input type="text" id="admin-search-input" class="form-input" placeholder="🔍 Search Store, Mobile, ID..." style="min-height: 40px; font-size: 0.85rem;" oninput="app.filterAdminTable()">
+                    <div style="max-width: 280px; width: 100%;">
+                        <input type="text" id="admin-search-input" class="form-input" placeholder="🔍 Quick Search ID, Name..." style="min-height: 38px; font-size: 0.85rem;" oninput="app.filterAdminTable()">
+                    </div>
+                </div>
+
+                <!-- Advanced Date Range & Store Selection Filters -->
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 1.25rem; background: hsla(222, 35%, 15%, 0.6); padding: 0.85rem 1.25rem; border-radius: 10px; border: 1px solid var(--border-glass);">
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--accent-cyan); font-weight: 700; display: block; margin-bottom: 4px;">📅 Start Date</label>
+                        <input type="date" id="admin-start-date" class="form-input" style="padding: 6px 10px; font-size: 0.85rem;" onchange="app.filterAdminTable()">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--accent-cyan); font-weight: 700; display: block; margin-bottom: 4px;">📅 End Date</label>
+                        <input type="date" id="admin-end-date" class="form-input" style="padding: 6px 10px; font-size: 0.85rem;" onchange="app.filterAdminTable()">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.75rem; color: var(--accent-cyan); font-weight: 700; display: block; margin-bottom: 4px;">🏪 Store Site Filter</label>
+                        <select id="admin-store-filter" class="form-input" style="padding: 6px 10px; font-size: 0.85rem; min-width: 180px;" onchange="app.filterAdminTable()">
+                            <option value="">All Stores</option>
+                        </select>
+                    </div>
+                    <div style="margin-top: 18px; display: flex; gap: 8px;">
+                        <button class="btn btn-secondary btn-sm" onclick="app.resetAdminFilters()">🔄 Reset Filters</button>
+                        <button class="btn btn-primary btn-sm" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);" onclick="app.downloadFilteredExcel()">📥 Export Filtered Excel</button>
                     </div>
                 </div>
 
@@ -312,7 +337,7 @@
 
     </main>
 
-    <script src="js/api.js?v=8.0"></script>
-    <script src="js/app.js?v=8.0"></script>
+    <script src="js/api.js?v=9.0"></script>
+    <script src="js/app.js?v=9.0"></script>
 </body>
 </html>
