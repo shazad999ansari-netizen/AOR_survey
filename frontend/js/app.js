@@ -649,22 +649,21 @@ class FieldPortalApp {
         summaryText += `📡 *HOTSPOTS SURVEY SUMMARY (${this.hotspotDefinitions.length} Hotspots):*\n\n`;
 
         this.hotspotDefinitions.forEach(hs => {
-            const dl5g = document.getElementById(`cell-${hs.id}-dl_mb_5g`)?.innerText || '-';
-            const ul5g = document.getElementById(`cell-${hs.id}-ul_mb_5g`)?.innerText || '-';
-            const rsrp5g = document.getElementById(`cell-${hs.id}-rsrp_5g`)?.innerText || '-';
-            const arfcn5g = document.getElementById(`cell-${hs.id}-arfcn_5g`)?.innerText || '-';
+            const dl5g = document.getElementById(`cell-${hs.id}-dl_mb_5g`)?.innerText?.trim() || '-';
+            const ul5g = document.getElementById(`cell-${hs.id}-ul_mb_5g`)?.innerText?.trim() || '-';
+            const rsrp5g = document.getElementById(`cell-${hs.id}-rsrp_5g`)?.innerText?.trim() || '-';
+            const arfcn5g = document.getElementById(`cell-${hs.id}-arfcn_5g`)?.innerText?.trim() || '-';
 
-            const dl4g = document.getElementById(`cell-${hs.id}-dl_mb_4g`)?.innerText || '-';
-            const ul4g = document.getElementById(`cell-${hs.id}-ul_mb_4g`)?.innerText || '-';
-            const rsrp4g = document.getElementById(`cell-${hs.id}-rsrp_4g`)?.innerText || '-';
-            const arfcn4g = document.getElementById(`cell-${hs.id}-arfcn_4g`)?.innerText || '-';
-            const cleanEnb = (enb !== '-' && enb !== 'null' && enb) ? enb.trim() : '';
-            const cleanCid = (cid4g !== '-' && cid4g !== 'null' && cid4g) ? cid4g.trim() : '';
-            const lncellIdStr = (cleanEnb || cleanCid) ? `${cleanEnb}${cleanCid}` : '-';
+            const dl4g = document.getElementById(`cell-${hs.id}-dl_mb_4g`)?.innerText?.trim() || '-';
+            const ul4g = document.getElementById(`cell-${hs.id}-ul_mb_4g`)?.innerText?.trim() || '-';
+            const rsrp4g = document.getElementById(`cell-${hs.id}-rsrp_4g`)?.innerText?.trim() || '-';
+            const arfcn4g = document.getElementById(`cell-${hs.id}-arfcn_4g`)?.innerText?.trim() || '-';
+            
+            const lncellId = document.getElementById(`cell-${hs.id}-lncell_id`)?.innerText?.trim() || '-';
 
             summaryText += `📍 *${hs.name}:*\n`;
             summaryText += `   📡 *5G:* DL ${dl5g} Mbps | UL ${ul5g} Mbps | RSRP: ${rsrp5g} | ARFCN: ${arfcn5g}\n`;
-            summaryText += `   📶 *4G:* Lncell id: ${lncellIdStr} | DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n\n`;
+            summaryText += `   📶 *4G:* Lncell id: ${lncellId} | DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n\n`;
         });
 
         summaryText += `----------------------------------------\n`;
@@ -673,25 +672,49 @@ class FieldPortalApp {
     }
 
     async copyExecutiveSummary() {
-        const summaryText = this.generateSummaryText();
         try {
-            await navigator.clipboard.writeText(summaryText);
-            this.showToast('📋 5G & 4G Executive Summary copied to clipboard!', 'success');
+            const summaryText = this.generateSummaryText();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(summaryText);
+                this.showToast('📋 5G & 4G Executive Summary copied to clipboard!', 'success');
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = summaryText;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                this.showToast('📋 Executive Summary copied!', 'success');
+            }
         } catch (e) {
-            this.showToast('Could not copy automatically.', 'warning');
+            console.warn('Copy summary error:', e);
+            this.showToast(`Copy failed: ${e.message}`, 'error');
         }
     }
 
     shareViaWhatsApp() {
-        const summaryText = this.generateSummaryText();
-        const url = `https://wa.me/?text=${encodeURIComponent(summaryText)}`;
-        window.open(url, '_blank');
+        try {
+            const summaryText = this.generateSummaryText();
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(summaryText)}`;
+            window.open(url, '_blank');
+        } catch (e) {
+            console.warn('WhatsApp share error:', e);
+            this.showToast(`WhatsApp share error: ${e.message}`, 'error');
+        }
     }
 
     shareViaTelegram() {
-        const summaryText = this.generateSummaryText();
-        const url = `https://t.me/share/url?url=${encodeURIComponent('https://telecom-field-portal.onrender.com')}&text=${encodeURIComponent(summaryText)}`;
-        window.open(url, '_blank');
+        try {
+            const summaryText = this.generateSummaryText();
+            const url = `https://t.me/share/url?url=${encodeURIComponent('https://telecom-field-portal.onrender.com')}&text=${encodeURIComponent(summaryText)}`;
+            window.open(url, '_blank');
+        } catch (e) {
+            console.warn('Telegram share error:', e);
+            this.showToast(`Telegram share error: ${e.message}`, 'error');
+        }
     }
 
     applyMetricsToUI(hsId, m) {
