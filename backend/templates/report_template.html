@@ -157,13 +157,6 @@
                             <td>{{ hotspot.ul_mb_4g or 0 }} Mbps</td>
                             <td><strong>Lncell id / ARFCN:</strong> {{ hotspot.lncell_id or '-' }} / {{ hotspot.arfcn_4g or '-' }}</td>
                         </tr>
-                        {% if hotspot.remarks %}
-                        <tr>
-                            <td colspan="6" style="background: #fffdf5; color: #744210; padding: 8px 12px; border-top: 1px solid #feebc8; font-size: 9.5pt;">
-                                <strong>📝 Engineer Remarks:</strong> {{ hotspot.remarks }}
-                            </td>
-                        </tr>
-                        {% endif %}
                         <tr>
                             <td colspan="3" style="text-align: center; padding: 10px; background: #f8fafc;">
                                 <span style="font-size: 8.5pt; font-weight: bold; display: block; margin-bottom: 5px; color: #718096;">5G OCR SCREENSHOT PROOF</span>
@@ -190,6 +183,14 @@
             <p style="font-style: italic; color: #718096;">No hotspot telemetry readings have been registered for this inspection audit yet.</p>
         {% endif %}
     </div>
+
+    <!-- Section 3: Executive Field Audit Overall Remarks -->
+    {% if survey.remarks %}
+    <div style="margin-top: 25px; border: 1px solid #feebc8; background: #fffdf5; border-radius: 6px; padding: 15px; page-break-inside: avoid;">
+        <h3 style="color: #744210; margin-top: 0; font-size: 11pt; margin-bottom: 8px;">📝 Field Engineer Final Audit Remarks & Overall Site Observations</h3>
+        <p style="color: #2d3748; font-size: 9.5pt; line-height: 1.5; margin: 0;">{{ survey.remarks }}</p>
+    </div>
+    {% endif %}
 
     <!-- Sign-off Validation Footer -->
     <div style="margin-top: 40px; border-top: 1px solid #cbd5e0; padding-top: 20px; text-align: center; font-size: 9pt; color: #718096;">

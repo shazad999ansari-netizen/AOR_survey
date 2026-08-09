@@ -248,6 +248,11 @@
                     <h3 style="font-size: 1.4rem; margin-top: 2px;">Executive Audit Report & Export Center (PDF / Excel)</h3>
                 </div>
 
+                <div class="form-group" style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.03); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-glass);">
+                    <label class="form-label" for="store-remarks-input" style="font-weight: 600; color: var(--accent-cyan);">📝 Final Overall Field Audit Remarks / Site Issues (Optional)</label>
+                    <textarea id="store-remarks-input" class="form-input" rows="3" style="resize: vertical; font-family: inherit;" placeholder="Enter overall store site observations, hardware constraints, coverage issues, or recommendations..."></textarea>
+                </div>
+
                 <div style="display: flex; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap;">
                     <button class="btn btn-primary" id="btn-download-pdf" onclick="app.downloadExecutivePDF()">
                         📑 Export Executive PDF Report
@@ -377,7 +382,7 @@
         </div>
     </div>
 
-    <script src="js/api.js?v=25.0"></script>
-    <script src="js/app.js?v=25.0"></script>
+    <script src="js/api.js?v=26.0"></script>
+    <script src="js/app.js?v=26.0"></script>
 </body>
 </html>

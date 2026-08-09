@@ -188,11 +188,6 @@ class FieldPortalApp {
                     </div>
                 </div>
 
-                <div style="margin-top: 1rem;">
-                    <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem;">📝 Engineer Remarks / Issue Notes for ${hs.name}:</label>
-                    <textarea id="remarks-${hs.id}" class="form-input" rows="2" style="resize: vertical; font-family: inherit;" placeholder="Mention any specific issues (e.g. low coverage, interference, high latency, hardware obstruction)..."></textarea>
-                </div>
-
                 <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
                     <div id="save-status-${hs.id}" style="color: var(--text-secondary); font-size: 0.8rem; text-align: center;">Waiting for extraction or save.</div>
                     <button class="btn btn-secondary" onclick="app.saveHotspotToDB(${hs.id}, false)">
@@ -669,13 +664,14 @@ class FieldPortalApp {
 
             summaryText += `📍 *${hs.name}:*\n`;
             summaryText += `   📡 *5G:* DL ${dl5g} Mbps | UL ${ul5g} Mbps | RSRP: ${rsrp5g} | ARFCN: ${arfcn5g}\n`;
-            summaryText += `   📶 *4G:* Lncell id: ${lncellId} | DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n`;
-            const hsRemarks = document.getElementById(`remarks-${hs.id}`)?.value?.trim() || '';
-            if (hsRemarks) {
-                summaryText += `   📝 *Remarks:* ${hsRemarks}\n`;
-            }
-            summaryText += `\n`;
+            summaryText += `   📶 *4G:* Lncell id: ${lncellId} | DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n\n`;
         });
+
+        const storeRemarks = document.getElementById('store-remarks-input')?.value?.trim() || '';
+        if (storeRemarks) {
+            summaryText += `----------------------------------------\n`;
+            summaryText += `📝 *OVERALL ENGINEER REMARKS:*\n${storeRemarks}\n`;
+        }
 
         summaryText += `----------------------------------------\n`;
         summaryText += `✅ *Generated via Mobile Field Engineer Portal*`;
