@@ -682,6 +682,27 @@ class FieldPortalApp {
         window.open(url, '_blank');
     }
 
+    shareViaTelegram() {
+        const storeName = document.getElementById('store-name-input')?.value.trim() || 'Store Site';
+        const srvId = this.activeSurveyId ? `#SRV-${this.activeSurveyId}` : 'Draft';
+        
+        let summaryText = `⚡ *TELECOM STORE FIELD AUDIT REPORT*\n`;
+        summaryText += `🏪 *Store:* ${storeName} (${srvId})\n`;
+        summaryText += `📡 *Total Hotspots:* ${this.hotspotDefinitions.length}\n\n`;
+
+        this.hotspotDefinitions.forEach(hs => {
+            const cell5g = document.getElementById(`cell-${hs.id}-dl_mb_5g`)?.innerText || '-';
+            const rsrp5g = document.getElementById(`cell-${hs.id}-rsrp_5g`)?.innerText || '-';
+            const arfcn5g = document.getElementById(`cell-${hs.id}-arfcn_5g`)?.innerText || '-';
+            summaryText += `🔹 *${hs.name}:* 5G DL ${cell5g} Mbps (RSRP: ${rsrp5g} | ARFCN: ${arfcn5g})\n`;
+        });
+
+        summaryText += `\n✅ *Audit Report Completed via Field Portal!*`;
+        
+        const url = `https://t.me/share/url?url=${encodeURIComponent('https://telecom-field-portal.onrender.com')}&text=${encodeURIComponent(summaryText)}`;
+        window.open(url, '_blank');
+    }
+
     applyMetricsToUI(hsId, m) {
         if (!this.hotspotsData[hsId]) this.hotspotsData[hsId] = {};
         this.hotspotsData[hsId].metrics = { ...(this.hotspotsData[hsId].metrics || {}), ...m };
