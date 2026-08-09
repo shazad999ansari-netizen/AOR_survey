@@ -144,10 +144,16 @@
                         <tr>
                             <td><strong>DL Speed:</strong></td>
                             <td style="color: #2b6cb0; font-weight: bold;">{{ hotspot.dl_mb_5g or 0 }} Mbps</td>
-                            <td>{{ hotspot.rsrp_5g or 'N/A' }} dBm</td>
+                            <td>
+                                {{ hotspot.rsrp_5g or 'N/A' }} dBm
+                                <br><span style="font-size: 7.5pt; font-weight: bold; color: {{ hotspot.quality_5g_color }};">{{ hotspot.quality_5g_label }}</span>
+                            </td>
                             <td><strong>DL Speed:</strong></td>
                             <td style="color: #4a5568; font-weight: bold;">{{ hotspot.dl_mb_4g or 0 }} Mbps</td>
-                            <td>{{ hotspot.rsrp_4g or 'N/A' }} dBm</td>
+                            <td>
+                                {{ hotspot.rsrp_4g or 'N/A' }} dBm
+                                <br><span style="font-size: 7.5pt; font-weight: bold; color: {{ hotspot.quality_4g_color }};">{{ hotspot.quality_4g_label }}</span>
+                            </td>
                         </tr>
                         <tr>
                             <td><strong>UL Speed:</strong></td>

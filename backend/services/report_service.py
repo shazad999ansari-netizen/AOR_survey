@@ -62,10 +62,25 @@ class ReportService:
             cid_str = str(h.cid) if h.cid is not None else ""
             lncell_str = f"{enb_str}{cid_str}" if (enb_str or cid_str) else "-"
 
+            def get_quality(rsrp):
+                if rsrp is None or rsrp == "": return ("N/A", "#a0aec0")
+                try:
+                    val = float(rsrp)
+                    if val >= -80: return ("EXCELLENT 🟢", "#10b981")
+                    if val >= -95: return ("GOOD 🟡", "#d97706")
+                    if val >= -105: return ("FAIR 🟠", "#ea580c")
+                    return ("DEADZONE 🔴", "#dc2626")
+                except: return ("N/A", "#a0aec0")
+
+            q5_label, q5_color = get_quality(h.rsrp_5g)
+            q4_label, q4_color = get_quality(h.rsrp_4g)
+
             h_dict = {
                 "hotspot_name": h.hotspot_name,
                 "pci_5g": h.pci_5g,
                 "rsrp_5g": h.rsrp_5g,
+                "quality_5g_label": q5_label,
+                "quality_5g_color": q5_color,
                 "dl_mb_5g": h.dl_mb_5g,
                 "ul_mb_5g": h.ul_mb_5g,
                 "gnb": h.gnb,
@@ -75,6 +90,8 @@ class ReportService:
                 "lncell_id": lncell_str,
                 "arfcn_4g": h.arfcn_4g,
                 "rsrp_4g": h.rsrp_4g,
+                "quality_4g_label": q4_label,
+                "quality_4g_color": q4_color,
                 "dl_mb_4g": h.dl_mb_4g,
                 "ul_mb_4g": h.ul_mb_4g,
                 "pci_4g": h.pci_4g,

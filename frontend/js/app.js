@@ -134,9 +134,10 @@ class FieldPortalApp {
                     ⚡ Trigger Vision AI Auto-Extract (OCR)
                 </button>
 
-                <!-- Mobile Metric Preview Card -->
-                <div class="glass-panel" style="padding: 1rem; background: #ffffff; border: 1px solid #e5e7eb;">
-                    <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase;">Extracted Telemetry & Speedtest Card</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                        <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin: 0; text-transform: uppercase;">Extracted Telemetry & Speedtest Card</h4>
+                        <div id="signal-health-badge-${hs.id}" style="display: flex; gap: 6px; align-items: center;"></div>
+                    </div>
                     
                     <div class="data-table-container" style="margin-top: 0;">
                         <table class="data-table" id="table-metrics-${hs.id}">
@@ -588,7 +589,6 @@ class FieldPortalApp {
         const img = document.getElementById('lightbox-image-element');
         if (modal && img) {
             img.src = src;
-            modal.style.display = 'flex';
         }
     }
 
@@ -597,13 +597,30 @@ class FieldPortalApp {
         if (modal) modal.style.display = 'none';
     }
 
+    getSignalQualityBadge(rsrp) {
+        if (rsrp === null || rsrp === undefined || isNaN(rsrp)) return { label: 'N/A', color: '#a0aec0', bg: 'rgba(160,174,192,0.1)' };
+        const val = parseFloat(rsrp);
+        if (val >= -80) return { label: '🟢 EXCELLENT', color: '#10b981', bg: 'rgba(16,185,129,0.15)' };
+        if (val >= -95) return { label: '🟡 GOOD', color: '#f59e0b', bg: 'rgba(245,158,11,0.15)' };
+        if (val >= -105) return { label: '🟠 FAIR', color: '#f97316', bg: 'rgba(249,115,22,0.15)' };
+        return { label: '🔴 POOR (DEADZONE)', color: '#ef4444', bg: 'rgba(239,68,68,0.15)' };
+    }
+
+    getSpeedGradeBadge(dl) {
+        if (dl === null || dl === undefined || isNaN(dl)) return { label: '-', color: '#a0aec0' };
+        const val = parseFloat(dl);
+        if (val >= 300) return { label: '⚡ ULTRA 5G', color: '#00f2fe' };
+        if (val >= 100) return { label: '🟢 FAST 5G', color: '#10b981' };
+        return { label: '🟡 STANDARD', color: '#f59e0b' };
+    }
+
     updateSurveyProgress() {
-        const fill = document.getElementById('survey-progress-fill');
-        const txt = document.getElementById('survey-progress-text');
-        const badge = document.getElementById('survey-progress-badge');
+        const fill = document.getElementById('progress-bar-fill');
+        const txt = document.getElementById('progress-bar-text');
+        const badge = document.getElementById('survey-status-badge');
         if (!fill || !txt || !badge) return;
 
-        let totalSteps = 1 + this.hotspotDefinitions.length; // 1 for store info + N hotspots
+        const totalSteps = 1 + this.hotspotDefinitions.length;
         let completedSteps = 0;
 
         const storeName = document.getElementById('store-name-input')?.value.trim();
@@ -613,8 +630,12 @@ class FieldPortalApp {
         let hsSavedCount = 0;
         this.hotspotDefinitions.forEach(hs => {
             const data = this.hotspotsData[hs.id];
-            if (data && (data.metrics || data.files_5g || data.files_4g)) {
+            const tabBtn = document.querySelector(`button[data-tab="${hs.tab}"]`);
+            if (data && (data.metrics || (data.files_5g && data.files_5g.length > 0) || (data.files_4g && data.files_4g.length > 0))) {
                 hsSavedCount += 1;
+                if (tabBtn && !tabBtn.innerHTML.includes('✓')) {
+                    tabBtn.innerHTML = `📡 ${hs.name} <span style="color: #10b981; font-weight: 800; margin-left: 4px;">✓</span>`;
+                }
             }
         });
         completedSteps += hsSavedCount;
@@ -666,9 +687,12 @@ class FieldPortalApp {
             
             const lncellId = document.getElementById(`cell-${hs.id}-lncell_id`)?.innerText?.trim() || '-';
 
+            const q5g = this.getSignalQualityBadge(rsrp5g !== '-' ? parseFloat(rsrp5g) : null);
+            const q4g = this.getSignalQualityBadge(rsrp4g !== '-' ? parseFloat(rsrp4g) : null);
+
             summaryText += `📍 *${hs.name}:*\n`;
-            summaryText += `   📡 *5G:* DL ${dl5g} Mbps | UL ${ul5g} Mbps | RSRP: ${rsrp5g} | ARFCN: ${arfcn5g}\n`;
-            summaryText += `   📶 *4G:* Lncell id: ${lncellId} | DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n\n`;
+            summaryText += `   📡 *5G:* DL ${dl5g} Mbps | UL ${ul5g} Mbps | RSRP: ${rsrp5g} (${q5g.label}) | ARFCN: ${arfcn5g}\n`;
+            summaryText += `   📶 *4G:* Lncell id: ${lncellId} | DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} (${q4g.label}) | ARFCN: ${arfcn4g}\n\n`;
         });
 
         const storeRemarks = document.getElementById('store-remarks-input')?.value?.trim() || '';
@@ -795,6 +819,35 @@ class FieldPortalApp {
             updateCell('dl_mb_4g', getVal(['dl_mb_4g', 'dl_mb']));
             updateCell('ul_mb_4g', getVal(['ul_mb_4g', 'ul_mb']));
         }
+
+        // Update Signal Quality Health Badges
+        const badgeContainer = document.getElementById(`signal-health-badge-${hsId}`);
+        if (badgeContainer) {
+            let badgeHtml = '';
+            const parseNum = (id) => {
+                const el = document.getElementById(id);
+                if (!el) return null;
+                const txt = el.innerText.replace(/dBm/gi, '').replace(/Mbps/gi, '').trim();
+                if (!txt || txt === '-' || txt === 'null') return null;
+                const v = parseFloat(txt);
+                return isNaN(v) ? null : v;
+            };
+
+            const r5 = parseNum(`cell-${hsId}-rsrp_5g`);
+            if (r5 !== null) {
+                const q5 = this.getSignalQualityBadge(r5);
+                badgeHtml += `<span style="background: ${q5.bg}; color: ${q5.color}; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; border: 1px solid ${q5.color};">5G: ${q5.label}</span>`;
+            }
+
+            const r4 = parseNum(`cell-${hsId}-rsrp_4g`);
+            if (r4 !== null) {
+                const q4 = this.getSignalQualityBadge(r4);
+                badgeHtml += `<span style="background: ${q4.bg}; color: ${q4.color}; padding: 3px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; border: 1px solid ${q4.color};">4G: ${q4.label}</span>`;
+            }
+            badgeContainer.innerHTML = badgeHtml;
+        }
+
+        this.updateSurveyProgress();
     }
 
     async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio) {
