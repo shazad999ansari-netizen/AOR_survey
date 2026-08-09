@@ -77,45 +77,58 @@ async def process_telegram_update(bot_token: str, update: dict):
         )
         return
 
-    # Handle Photo Uploads for OCR Parsing
+    # Handle Photo Uploads for OCR Parsing (Multi-Photo / Album Aggregation)
     if "photo" in msg:
         if not session.get("store_name"):
             session["store_name"] = "Telegram Store Audit"
         session["step"] = "READY_FOR_PHOTOS"
 
-        send_telegram_message(bot_token, chat_id, "🔍 *Vision AI Processing...* Extracting telemetry & speed metrics...")
-        
         try:
             photo_file_id = msg["photo"][-1]["file_id"]
             file_resp = requests.get(f"https://api.telegram.org/bot{bot_token}/getFile?file_id={photo_file_id}", timeout=10).json()
             file_path = file_resp["result"]["file_path"]
             img_bytes = requests.get(f"https://api.telegram.org/file/bot{bot_token}/{file_path}", timeout=20).content
 
-            hs_name = f"Hotspot {len(session['hotspots']) + 1}"
-            res = await vision_extractor.analyze_screenshots(snaps_5g_bytes=img_bytes, snaps_4g_bytes=img_bytes, hotspot_name=hs_name)
-            
-            m = res.metrics.model_dump() if hasattr(res.metrics, 'model_dump') else res.metrics.dict()
+            import time
+            now = time.time()
+            last_hs = session["hotspots"][-1] if session["hotspots"] else None
 
-            enb_str = str(m.get("enb")) if m.get("enb") is not None else ""
-            cid_str = str(m.get("cid")) if m.get("cid") is not None else ""
+            # If previous photo was sent in the last 15 seconds, merge metrics into the SAME Hotspot!
+            if last_hs and (now - last_hs.get("timestamp", 0) < 15):
+                target_hs = last_hs
+                hs_name = target_hs["name"]
+                res = await vision_extractor.analyze_screenshots(snaps_5g_bytes=img_bytes, snaps_4g_bytes=img_bytes, hotspot_name=hs_name)
+                m = res.metrics.model_dump() if hasattr(res.metrics, 'model_dump') else res.metrics.dict()
+                for k, v in m.items():
+                    if v is not None and v != "" and v != "-":
+                        target_hs["metrics"][k] = v
+                merged_m = target_hs["metrics"]
+            else:
+                hs_name = f"Hotspot {len(session['hotspots']) + 1}"
+                res = await vision_extractor.analyze_screenshots(snaps_5g_bytes=img_bytes, snaps_4g_bytes=img_bytes, hotspot_name=hs_name)
+                merged_m = res.metrics.model_dump() if hasattr(res.metrics, 'model_dump') else res.metrics.dict()
+                target_hs = {
+                    "name": hs_name,
+                    "metrics": merged_m,
+                    "timestamp": now
+                }
+                session["hotspots"].append(target_hs)
+
+            enb_str = str(merged_m.get("enb")) if merged_m.get("enb") is not None else ""
+            cid_str = str(merged_m.get("cid")) if merged_m.get("cid") is not None else ""
             lncell_id = f"{enb_str}{cid_str}" if (enb_str or cid_str) else "-"
+            target_hs["lncell_id"] = lncell_id
 
-            session["hotspots"].append({
-                "name": hs_name,
-                "metrics": m,
-                "lncell_id": lncell_id
-            })
-
-            r5 = m.get("rsrp_5g", "-")
-            dl5 = m.get("dl_mb_5g", "-")
-            r4 = m.get("rsrp_4g", "-")
-            dl4 = m.get("dl_mb_4g", "-")
+            r5 = merged_m.get("rsrp_5g", "-")
+            dl5 = merged_m.get("dl_mb_5g", "-")
+            r4 = merged_m.get("rsrp_4g", "-")
+            dl4 = merged_m.get("dl_mb_4g", "-")
 
             reply_text = (
-                f"✅ *{hs_name} Telemetry Extracted!*\n\n"
+                f"✅ *{hs_name} Telemetry Extracted & Merged!*\n\n"
                 f"📡 *5G:* DL {dl5} Mbps | RSRP: {r5} dBm\n"
                 f"📶 *4G:* Lncell id: {lncell_id} | DL {dl4} Mbps | RSRP: {r4} dBm\n\n"
-                "📷 Send next screenshot or type `/report` to download PDF!"
+                "📷 Send more screenshots or type `/report` to download Executive PDF!"
             )
             send_telegram_message(bot_token, chat_id, reply_text)
         except Exception as err:
