@@ -37,7 +37,7 @@ def send_telegram_document(bot_token: str, chat_id: int, file_bytes: bytes, file
     except Exception as e:
         logger.error(f"Failed to send Telegram document: {e}")
 
-def process_telegram_update(bot_token: str, update: dict):
+async def process_telegram_update(bot_token: str, update: dict):
     if "message" not in update:
         return
 
@@ -77,35 +77,50 @@ def process_telegram_update(bot_token: str, update: dict):
         )
         return
 
-    if "photo" in msg and session["step"] == "READY_FOR_PHOTOS":
+    # Handle Photo Uploads for OCR Parsing
+    if "photo" in msg:
+        if not session.get("store_name"):
+            session["store_name"] = "Telegram Store Audit"
+        session["step"] = "READY_FOR_PHOTOS"
+
         send_telegram_message(bot_token, chat_id, "🔍 *Vision AI Processing...* Extracting telemetry & speed metrics...")
         
-        photo_file_id = msg["photo"][-1]["file_id"]
-        file_resp = requests.get(f"https://api.telegram.org/bot{bot_token}/getFile?file_id={photo_file_id}", timeout=10).json()
-        file_path = file_resp["result"]["file_path"]
-        img_bytes = requests.get(f"https://api.telegram.org/file/bot{bot_token}/{file_path}", timeout=20).content
+        try:
+            photo_file_id = msg["photo"][-1]["file_id"]
+            file_resp = requests.get(f"https://api.telegram.org/bot{bot_token}/getFile?file_id={photo_file_id}", timeout=10).json()
+            file_path = file_resp["result"]["file_path"]
+            img_bytes = requests.get(f"https://api.telegram.org/file/bot{bot_token}/{file_path}", timeout=20).content
 
-        ocr_result = vision_extractor.extract_telemetry_and_speeds(img_bytes)
+            hs_name = f"Hotspot {len(session['hotspots']) + 1}"
+            res = await vision_extractor.analyze_screenshots(snaps_5g_bytes=img_bytes, snaps_4g_bytes=img_bytes, hotspot_name=hs_name)
+            
+            m = res.metrics.model_dump() if hasattr(res.metrics, 'model_dump') else res.metrics.dict()
 
-        hs_name = f"Hotspot {len(session['hotspots']) + 1}"
-        session["hotspots"].append({
-            "name": hs_name,
-            "metrics": ocr_result
-        })
+            enb_str = str(m.get("enb")) if m.get("enb") is not None else ""
+            cid_str = str(m.get("cid")) if m.get("cid") is not None else ""
+            lncell_id = f"{enb_str}{cid_str}" if (enb_str or cid_str) else "-"
 
-        r5 = ocr_result.get("rsrp_5g", ocr_result.get("rsrp", "-"))
-        dl5 = ocr_result.get("dl_mb_5g", ocr_result.get("dl_mb", "-"))
-        r4 = ocr_result.get("rsrp_4g", "-")
-        dl4 = ocr_result.get("dl_mb_4g", "-")
-        lncell = ocr_result.get("lncell_id", ocr_result.get("enb", "-"))
+            session["hotspots"].append({
+                "name": hs_name,
+                "metrics": m,
+                "lncell_id": lncell_id
+            })
 
-        reply_text = (
-            f"✅ *{hs_name} Telemetry Extracted!*\n\n"
-            f"📡 *5G:* DL {dl5} Mbps | RSRP: {r5} dBm\n"
-            f"📶 *4G:* Lncell id: {lncell} | DL {dl4} Mbps | RSRP: {r4} dBm\n\n"
-            "Send next screenshot or type `/report` to download PDF!"
-        )
-        send_telegram_message(bot_token, chat_id, reply_text)
+            r5 = m.get("rsrp_5g", "-")
+            dl5 = m.get("dl_mb_5g", "-")
+            r4 = m.get("rsrp_4g", "-")
+            dl4 = m.get("dl_mb_4g", "-")
+
+            reply_text = (
+                f"✅ *{hs_name} Telemetry Extracted!*\n\n"
+                f"📡 *5G:* DL {dl5} Mbps | RSRP: {r5} dBm\n"
+                f"📶 *4G:* Lncell id: {lncell_id} | DL {dl4} Mbps | RSRP: {r4} dBm\n\n"
+                "📷 Send next screenshot or type `/report` to download PDF!"
+            )
+            send_telegram_message(bot_token, chat_id, reply_text)
+        except Exception as err:
+            logger.error(f"Telegram OCR processing error: {err}")
+            send_telegram_message(bot_token, chat_id, f"❌ OCR Processing Error: {err}")
         return
 
     if text == "/report":
@@ -175,7 +190,7 @@ async def run_telegram_bot_loop():
             if data.get("ok"):
                 for result in data["result"]:
                     offset = result["update_id"] + 1
-                    process_telegram_update(token, result)
+                    await process_telegram_update(token, result)
         except Exception as err:
             logger.error(f"Telegram Polling loop error: {err}")
         await asyncio.sleep(2)
