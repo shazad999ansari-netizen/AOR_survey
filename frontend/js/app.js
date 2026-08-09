@@ -190,14 +190,9 @@ class FieldPortalApp {
 
                 <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
                     <div id="save-status-${hs.id}" style="color: var(--text-secondary); font-size: 0.8rem; text-align: center;">Waiting for extraction or save.</div>
-                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" style="flex: 1;" onclick="app.saveHotspotToDB(${hs.id}, false)">
-                            💾 Confirm & Save Reading
-                        </button>
-                        <button class="btn btn-secondary" style="border-color: #38bdf8; color: #0284c7; font-weight: 700;" onclick="app.promptAddCustomHotspot()">
-                            ➕ Add New Hotspot Point
-                        </button>
-                    </div>
+                    <button class="btn btn-secondary" onclick="app.saveHotspotToDB(${hs.id}, false)">
+                        💾 Confirm & Save Reading
+                    </button>
                     <button class="btn btn-primary" onclick="app.saveHotspotToDB(${hs.id}, true, '${nextTab}')">
                         ${nextLabel}
                     </button>
@@ -209,23 +204,27 @@ class FieldPortalApp {
     }
 
     promptAddCustomHotspot() {
-        const count = this.hotspotDefinitions.length + 1;
-        const name = prompt("Enter Custom Hotspot Location Name (e.g. Trial Room 1, Cash Counter, Food Court, ATM Bay):", `Hotspot ${count}: Custom Location`);
-        if (!name || !name.trim()) return;
+        const nextNum = this.hotspotDefinitions.length + 1;
+        const defaultName = `Hotspot ${nextNum}: Custom Location`;
+        const name = prompt(`Enter Location Name for Hotspot ${nextNum} (e.g. Trial Room 1, Cash Counter, Food Court):`, defaultName);
+        if (name === null) return;
+        const finalName = name.trim() || defaultName;
 
         const newId = this.nextHotspotId++;
         const tabId = `tab-custom-${newId}`;
         const newHs = {
             id: newId,
-            name: name.trim(),
+            name: finalName,
             tab: tabId,
             isCustom: true
         };
 
         this.hotspotDefinitions.push(newHs);
+        this.renderTabButtons();
         this.generateHotspotTabs();
+        this.updateSurveyProgress();
         this.switchTab(tabId);
-        this.showToast(`Custom Hotspot "${newHs.name}" created!`, 'success');
+        this.showToast(`Added ${finalName}!`, 'success');
     }
 
     renameHotspot(hsId, newName) {
