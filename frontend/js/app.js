@@ -14,6 +14,7 @@ class FieldPortalApp {
             { id: 5, name: "Hotspot 5: Back Office", tab: "tab-6" },
             { id: 6, name: "Hotspot 6: Back Office Corner", tab: "tab-7" },
         ];
+        this.nextHotspotId = 7;
         
         this.hotspotsData = {};
 
@@ -28,20 +29,63 @@ class FieldPortalApp {
     }
 
     // --- Dynamic Mobile Hotspot Tab Generator ---
+    renderTabButtons() {
+        const tabsBarContainer = document.getElementById('tabs-bar-container');
+        if (!tabsBarContainer) return;
+
+        const currentActive = document.querySelector('.tab-btn.active')?.getAttribute('data-tab') || 'tab-1';
+
+        let html = `<button class="tab-btn ${currentActive === 'tab-1' ? 'active' : ''}" data-tab="tab-1">📋 1. Store & HW</button>`;
+
+        this.hotspotDefinitions.forEach((hs, idx) => {
+            const isAct = currentActive === hs.tab ? 'active' : '';
+            html += `<button class="tab-btn ${isAct}" data-tab="${hs.tab}">📡 ${idx + 1}. ${hs.name}</button>`;
+        });
+
+        html += `
+        <button class="tab-btn" style="background: linear-gradient(135deg, #e40000 0%, #b30000 100%); color: #ffffff; border-color: #e40000; font-weight: 700; box-shadow: 0 4px 12px rgba(228, 0, 0, 0.3);" onclick="app.promptAddCustomHotspot()">
+            ➕ Add Custom Hotspot
+        </button>
+        <button class="tab-btn ${currentActive === 'tab-8' ? 'active' : ''}" data-tab="tab-8">🏆 PDF Export</button>`;
+
+        tabsBarContainer.innerHTML = html;
+
+        // Re-bind tab click events
+        tabsBarContainer.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetTab = btn.getAttribute('data-tab');
+                if (targetTab) this.switchTab(targetTab);
+            });
+        });
+    }
+
     generateHotspotTabs() {
+        this.renderTabButtons();
+
         const container = document.getElementById('hotspots-container-block');
         if (!container) return;
         
         let html = '';
+
         this.hotspotDefinitions.forEach((hs, idx) => {
-            const nextTab = idx < 5 ? `tab-${idx + 3}` : 'tab-8';
-            const nextLabel = idx < 5 ? `Proceed to Hotspot ${idx + 2} ➔` : `Finish & Open Executive PDF 🏆`;
+            const nextHs = this.hotspotDefinitions[idx + 1];
+            const nextTab = nextHs ? nextHs.tab : 'tab-8';
+            const nextLabel = nextHs ? `Proceed to ${nextHs.name} ➔` : `Finish & Open Executive PDF 🏆`;
 
             html += `
             <div id="${hs.tab}" class="tab-content glass-panel" style="padding: 1.5rem;">
-                <div style="margin-bottom: 1.25rem;">
-                    <span style="color: var(--accent-cyan); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Vision AI Telemetry Parsing</span>
-                    <h3 style="font-size: 1.3rem; margin-top: 2px;">📡 ${hs.name}</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 1.25rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem;">
+                    <div style="flex: 1; min-width: 250px;">
+                        <span style="color: var(--accent-cyan); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Hotspot Testing & OCR Telemetry</span>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                            <span style="font-size: 1.3rem;">📡</span>
+                            <input type="text" class="form-input" style="font-size: 1.1rem; font-weight: 700; max-width: 420px; min-height: 40px; padding: 6px 12px; border-color: #e40000; color: #111827;" value="${hs.name}" onchange="app.renameHotspot(${hs.id}, this.value)" placeholder="Enter Hotspot Location Name">
+                        </div>
+                    </div>
+                    ${hs.isCustom ? `
+                    <button class="btn btn-secondary btn-sm" style="color: #ef4444; border-color: #fca5a5;" onclick="app.deleteCustomHotspot(${hs.id})">
+                        🗑️ Delete Hotspot
+                    </button>` : ''}
                 </div>
 
                 <div class="hardware-grid" style="margin-top: 0; margin-bottom: 1.5rem;">
@@ -56,7 +100,7 @@ class FieldPortalApp {
                     </div>
 
                     <!-- 5G Speedtest Dropzone -->
-                    <div class="dropzone-box" id="drop-5g_speedtest-${hs.id}" onclick="document.getElementById('file-5g_speedtest-${hs.id}').click();" style="border-color: hsla(190, 95%, 48%, 0.4);">
+                    <div class="dropzone-box" id="drop-5g_speedtest-${hs.id}" onclick="document.getElementById('file-5g_speedtest-${hs.id}').click();">
                         <div class="dropzone-icon" style="color: var(--accent-cyan);">⚡</div>
                         <div style="font-weight: 700; font-size: 0.9rem; color: var(--accent-cyan);">5G Speedtest Screenshot</div>
                         <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">DL & UL Speed Test</div>
@@ -66,7 +110,7 @@ class FieldPortalApp {
                     </div>
 
                     <!-- 4G Telemetry Dropzone -->
-                    <div class="dropzone-box" id="drop-4g_telemetry-${hs.id}" onclick="document.getElementById('file-4g_telemetry-${hs.id}').click();" style="border-color: hsla(265, 89%, 66%, 0.4);">
+                    <div class="dropzone-box" id="drop-4g_telemetry-${hs.id}" onclick="document.getElementById('file-4g_telemetry-${hs.id}').click();">
                         <div class="dropzone-icon" style="color: var(--accent-violet);">📶</div>
                         <div style="font-weight: 700; font-size: 0.9rem; color: var(--accent-violet);">4G Telemetry Screenshot</div>
                         <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">G-NetTrack RF Metrics</div>
@@ -76,7 +120,7 @@ class FieldPortalApp {
                     </div>
 
                     <!-- 4G Speedtest Dropzone -->
-                    <div class="dropzone-box" id="drop-4g_speedtest-${hs.id}" onclick="document.getElementById('file-4g_speedtest-${hs.id}').click();" style="border-color: hsla(265, 89%, 66%, 0.4);">
+                    <div class="dropzone-box" id="drop-4g_speedtest-${hs.id}" onclick="document.getElementById('file-4g_speedtest-${hs.id}').click();">
                         <div class="dropzone-icon" style="color: var(--accent-violet);">🚀</div>
                         <div style="font-weight: 700; font-size: 0.9rem; color: var(--accent-violet);">4G Speedtest Screenshot</div>
                         <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">DL & UL Speed Test</div>
@@ -91,7 +135,7 @@ class FieldPortalApp {
                 </button>
 
                 <!-- Mobile Metric Preview Card -->
-                <div class="glass-panel" style="padding: 1rem; background: hsla(222, 35%, 10%, 0.7);">
+                <div class="glass-panel" style="padding: 1rem; background: #ffffff; border: 1px solid #e5e7eb;">
                     <h4 style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase;">Extracted Telemetry & Speedtest Card</h4>
                     
                     <div class="data-table-container" style="margin-top: 0;">
@@ -153,6 +197,48 @@ class FieldPortalApp {
         });
 
         container.innerHTML = html;
+    }
+
+    promptAddCustomHotspot() {
+        const count = this.hotspotDefinitions.length + 1;
+        const name = prompt("Enter Custom Hotspot Location Name (e.g. Trial Room 1, Cash Counter, Food Court, ATM Bay):", `Hotspot ${count}: Custom Location`);
+        if (!name || !name.trim()) return;
+
+        const newId = this.nextHotspotId++;
+        const tabId = `tab-custom-${newId}`;
+        const newHs = {
+            id: newId,
+            name: name.trim(),
+            tab: tabId,
+            isCustom: true
+        };
+
+        this.hotspotDefinitions.push(newHs);
+        this.generateHotspotTabs();
+        this.switchTab(tabId);
+        this.showToast(`Custom Hotspot "${newHs.name}" created!`, 'success');
+    }
+
+    renameHotspot(hsId, newName) {
+        if (!newName || !newName.trim()) return;
+        const hs = this.hotspotDefinitions.find(h => h.id === hsId);
+        if (hs) {
+            hs.name = newName.trim();
+            this.renderTabButtons();
+            this.showToast(`Renamed to "${hs.name}"`, 'success');
+        }
+    }
+
+    deleteCustomHotspot(hsId) {
+        const hs = this.hotspotDefinitions.find(h => h.id === hsId);
+        if (!hs) return;
+        if (!confirm(`Delete "${hs.name}" hotspot test?`)) return;
+
+        this.hotspotDefinitions = this.hotspotDefinitions.filter(h => h.id !== hsId);
+        delete this.hotspotsData[hsId];
+        this.generateHotspotTabs();
+        this.switchTab('tab-1');
+        this.showToast(`Custom hotspot removed.`, 'info');
     }
 
     // --- 6-Digit OTP Focus Grid Helper ---

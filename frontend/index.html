@@ -123,7 +123,7 @@
 
             <!-- Touch Mobile Tab Bar -->
             <div class="tabs-wrapper">
-                <div class="tabs-container">
+                <div class="tabs-container" id="tabs-bar-container">
                     <button class="tab-btn active" data-tab="tab-1">📋 1. Store & HW</button>
                     <button class="tab-btn" data-tab="tab-2">📡 2. Gate Left</button>
                     <button class="tab-btn" data-tab="tab-3">📡 3. Gate Right</button>
@@ -131,7 +131,8 @@
                     <button class="tab-btn" data-tab="tab-5">📡 5. Reception</button>
                     <button class="tab-btn" data-tab="tab-6">📡 6. Back Office</button>
                     <button class="tab-btn" data-tab="tab-7">📡 7. Back Corner</button>
-                    <button class="tab-btn" data-tab="tab-8">🏆 8. PDF Export</button>
+                    <button class="tab-btn" style="background: linear-gradient(135deg, #e40000 0%, #b30000 100%); color: #ffffff; border-color: #e40000; font-weight: 700; box-shadow: 0 4px 12px rgba(228, 0, 0, 0.3);" onclick="app.promptAddCustomHotspot()">➕ Add Custom Hotspot</button>
+                    <button class="tab-btn" data-tab="tab-8">🏆 PDF Export</button>
                 </div>
             </div>
 
@@ -337,7 +338,7 @@
 
     </main>
 
-    <script src="js/api.js?v=12.0"></script>
-    <script src="js/app.js?v=12.0"></script>
+    <script src="js/api.js?v=13.0"></script>
+    <script src="js/app.js?v=13.0"></script>
 </body>
 </html>
