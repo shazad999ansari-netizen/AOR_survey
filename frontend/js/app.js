@@ -658,10 +658,14 @@ class FieldPortalApp {
             const ul4g = document.getElementById(`cell-${hs.id}-ul_mb_4g`)?.innerText || '-';
             const rsrp4g = document.getElementById(`cell-${hs.id}-rsrp_4g`)?.innerText || '-';
             const arfcn4g = document.getElementById(`cell-${hs.id}-arfcn_4g`)?.innerText || '-';
+            const enb = document.getElementById(`cell-${hs.id}-enb`)?.innerText || '-';
+            const cid4g = document.getElementById(`cell-${hs.id}-cid`)?.innerText || '-';
+
+            const enbCidStr = (enb !== '-' && cid4g !== '-') ? `${enb}-${cid4g}` : (enb !== '-' ? enb : (cid4g !== '-' ? cid4g : '-'));
 
             summaryText += `📍 *${hs.name}:*\n`;
             summaryText += `   📡 *5G:* DL ${dl5g} Mbps | UL ${ul5g} Mbps | RSRP: ${rsrp5g} | ARFCN: ${arfcn5g}\n`;
-            summaryText += `   📶 *4G:* DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n\n`;
+            summaryText += `   📶 *4G:* eNB-CID: ${enbCidStr} | DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n\n`;
         });
 
         summaryText += `----------------------------------------\n`;

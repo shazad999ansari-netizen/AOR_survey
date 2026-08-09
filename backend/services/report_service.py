@@ -55,8 +55,20 @@ class ReportService:
         hardware_status = "100% OPTIMAL" if hw_ok else "REVIEW NEEDED"
 
         # Prepare hotspot image sources
+        # Prepare hotspot image sources
         prepared_hotspots = []
         for h in hotspots:
+            enb_str = str(h.enb) if h.enb is not None else ""
+            cid_str = str(h.cid) if h.cid is not None else ""
+            if enb_str and cid_str:
+                enb_cid_str = f"{enb_str}-{cid_str}"
+            elif enb_str:
+                enb_cid_str = enb_str
+            elif cid_str:
+                enb_cid_str = cid_str
+            else:
+                enb_cid_str = "-"
+
             h_dict = {
                 "hotspot_name": h.hotspot_name,
                 "pci_5g": h.pci_5g,
@@ -67,6 +79,7 @@ class ReportService:
                 "arfcn_5g": h.arfcn_5g,
                 "enb": h.enb,
                 "cid": h.cid,
+                "enb_cid": enb_cid_str,
                 "arfcn_4g": h.arfcn_4g,
                 "rsrp_4g": h.rsrp_4g,
                 "dl_mb_4g": h.dl_mb_4g,
