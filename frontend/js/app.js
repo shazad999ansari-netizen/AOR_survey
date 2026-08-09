@@ -551,22 +551,131 @@ class FieldPortalApp {
             badge.innerText = `✓ ${selectedFiles.length} File Attached`;
         }
 
-        // Render multi-thumbnail preview gallery
+        // Render multi-thumbnail preview gallery with Lightbox Zoom
         const thumbsContainer = document.getElementById(`thumbs-${techKey}-${hsId}`);
         if (thumbsContainer) {
             thumbsContainer.innerHTML = '';
             selectedFiles.forEach(file => {
                 const img = document.createElement('img');
-                img.src = URL.createObjectURL(file);
+                const src = URL.createObjectURL(file);
+                img.src = src;
                 img.style.maxWidth = '90px';
                 img.style.maxHeight = '70px';
                 img.style.borderRadius = '6px';
-                img.style.border = '1px solid var(--border-glass)';
+                img.style.border = '2px solid var(--accent-cyan)';
+                img.style.cursor = 'pointer';
+                img.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)';
+                img.title = 'Click to enlarge screenshot';
+                img.onclick = (e) => {
+                    e.stopPropagation();
+                    app.openImageModal(src);
+                };
                 thumbsContainer.appendChild(img);
             });
         }
         
+        this.updateSurveyProgress();
         this.showToast(`${techKey.replace('_', ' ').toUpperCase()} screenshot attached. Ready for Vision AI.`, 'success');
+    }
+
+    openImageModal(src) {
+        const modal = document.getElementById('image-lightbox-modal');
+        const img = document.getElementById('lightbox-image-element');
+        if (modal && img) {
+            img.src = src;
+            modal.style.display = 'flex';
+        }
+    }
+
+    closeImageModal() {
+        const modal = document.getElementById('image-lightbox-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    updateSurveyProgress() {
+        const fill = document.getElementById('survey-progress-fill');
+        const txt = document.getElementById('survey-progress-text');
+        const badge = document.getElementById('survey-progress-badge');
+        if (!fill || !txt || !badge) return;
+
+        let totalSteps = 1 + this.hotspotDefinitions.length; // 1 for store info + N hotspots
+        let completedSteps = 0;
+
+        const storeName = document.getElementById('store-name-input')?.value.trim();
+        const hasStoreInfo = !!this.activeSurveyId || (storeName && storeName.length > 0);
+        if (hasStoreInfo) completedSteps += 1;
+
+        let hsSavedCount = 0;
+        this.hotspotDefinitions.forEach(hs => {
+            const data = this.hotspotsData[hs.id];
+            if (data && (data.metrics || data.files_5g || data.files_4g)) {
+                hsSavedCount += 1;
+            }
+        });
+        completedSteps += hsSavedCount;
+
+        const pct = Math.min(Math.round((completedSteps / totalSteps) * 100), 100);
+        fill.style.width = `${pct}%`;
+        txt.innerText = `${pct}%`;
+
+        if (pct === 100) {
+            badge.style.background = '#dcfce7';
+            badge.style.color = '#15803d';
+            badge.style.borderColor = '#86efac';
+            badge.innerText = `🏆 100% Survey Complete! Ready for PDF`;
+        } else {
+            badge.style.background = '#fef2f2';
+            badge.style.color = '#e40000';
+            badge.style.borderColor = '#fecaca';
+            badge.innerText = `${hasStoreInfo ? 'Store Info Saved ✓' : 'Store Info Pending'} | Hotspots Tested: ${hsSavedCount}/${this.hotspotDefinitions.length}`;
+        }
+    }
+
+    async copyExecutiveSummary() {
+        const storeName = document.getElementById('store-name-input')?.value.trim() || 'Store Site';
+        const srvId = this.activeSurveyId ? `#SRV-${this.activeSurveyId}` : 'Draft';
+        
+        let summaryText = `⚡ *TELECOM STORE FIELD AUDIT REPORT*\n`;
+        summaryText += `🏪 *Store:* ${storeName} (${srvId})\n`;
+        summaryText += `📅 *Date:* ${new Date().toLocaleDateString()}\n`;
+        summaryText += `----------------------------------------\n`;
+        summaryText += `📡 *Hotspots Surveyed:* ${this.hotspotDefinitions.length}\n`;
+
+        this.hotspotDefinitions.forEach(hs => {
+            const cell5g = document.getElementById(`cell-${hs.id}-dl_mb_5g`)?.innerText || '-';
+            const rsrp5g = document.getElementById(`cell-${hs.id}-rsrp_5g`)?.innerText || '-';
+            summaryText += `• ${hs.name}: 5G DL ${cell5g} Mbps | RSRP ${rsrp5g}\n`;
+        });
+
+        summaryText += `----------------------------------------\n`;
+        summaryText += `✅ *Generated via Mobile Field Engineer Portal*`;
+
+        try {
+            await navigator.clipboard.writeText(summaryText);
+            this.showToast('📋 Executive Summary copied to clipboard!', 'success');
+        } catch (e) {
+            this.showToast('Could not copy automatically. Please select text manually.', 'warning');
+        }
+    }
+
+    shareViaWhatsApp() {
+        const storeName = document.getElementById('store-name-input')?.value.trim() || 'Store Site';
+        const srvId = this.activeSurveyId ? `#SRV-${this.activeSurveyId}` : 'Draft';
+        
+        let summaryText = `⚡ *TELECOM STORE FIELD AUDIT REPORT*\n`;
+        summaryText += `🏪 *Store:* ${storeName} (${srvId})\n`;
+        summaryText += `📡 *Total Hotspots:* ${this.hotspotDefinitions.length}\n\n`;
+
+        this.hotspotDefinitions.forEach(hs => {
+            const cell5g = document.getElementById(`cell-${hs.id}-dl_mb_5g`)?.innerText || '-';
+            const rsrp5g = document.getElementById(`cell-${hs.id}-rsrp_5g`)?.innerText || '-';
+            summaryText += `🔹 *${hs.name}:* 5G DL ${cell5g} Mbps (RSRP: ${rsrp5g})\n`;
+        });
+
+        summaryText += `\n✅ *Audit Report Completed!*`;
+        
+        const url = `https://wa.me/?text=${encodeURIComponent(summaryText)}`;
+        window.open(url, '_blank');
     }
 
     applyMetricsToUI(hsId, m) {
@@ -983,6 +1092,7 @@ class FieldPortalApp {
             if (statusSpan) {
                 statusSpan.innerHTML = `<span style="color: var(--accent-cyan); font-weight: 700;">✓ Saved to Azure SQL!</span>`;
             }
+            this.updateSurveyProgress();
             this.showToast(`${hsName} saved to Azure SQL!`, 'success');
 
             if (navigateNext && nextTabId) {

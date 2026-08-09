@@ -49,6 +49,20 @@
         </div>
     </header>
 
+    <!-- Live Survey Audit Progress Bar -->
+    <div id="survey-progress-bar-container" style="background: #ffffff; border-bottom: 1px solid #e5e7eb; padding: 8px 1.5rem; display: flex; align-items: center; justify-content: space-between; gap: 15px; font-size: 0.82rem; font-weight: 600; color: #374151; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+        <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+            <span style="font-weight: 700; color: #111827;">📊 Audit Completion:</span>
+            <div style="flex: 1; max-width: 320px; background: #e5e7eb; height: 10px; border-radius: 999px; overflow: hidden;">
+                <div id="survey-progress-fill" style="width: 15%; height: 100%; background: linear-gradient(90deg, #e40000 0%, #10b981 100%); transition: width 0.4s ease;"></div>
+            </div>
+            <span id="survey-progress-text" style="color: #e40000; font-weight: 800;">15%</span>
+        </div>
+        <div id="survey-progress-badge" style="background: #fef2f2; color: #e40000; padding: 4px 12px; border-radius: 9999px; border: 1px solid #fecaca; font-size: 0.78rem; font-weight: 700;">
+            Store Info Pending | Hotspots Saved: 0
+        </div>
+    </div>
+
     <div class="toast-container" id="toast-center"></div>
 
     <main class="main-content">
@@ -236,8 +250,14 @@
                     <button class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #059669;" id="btn-download-excel" onclick="app.downloadExecutiveExcel()">
                         📊 Export Store Excel (.csv) Report
                     </button>
+                    <button class="btn btn-secondary" onclick="app.copyExecutiveSummary()">
+                        📋 Copy Summary Text
+                    </button>
+                    <button class="btn btn-secondary" style="background: #25D366; color: #ffffff; border-color: #25D366; font-weight: 700;" onclick="app.shareViaWhatsApp()">
+                        💬 Share on WhatsApp
+                    </button>
                     <button class="btn btn-secondary" onclick="app.refreshReportPreview()">
-                        🔄 Refresh Live Report Preview
+                        🔄 Refresh Preview
                     </button>
                 </div>
 
@@ -341,7 +361,15 @@
 
     </main>
 
-    <script src="js/api.js?v=15.0"></script>
-    <script src="js/app.js?v=15.0"></script>
+    <!-- Image Lightbox Preview Modal -->
+    <div id="image-lightbox-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; backdrop-filter: blur(5px); justify-content: center; align-items: center; padding: 1.5rem;" onclick="app.closeImageModal()">
+        <div style="position: relative; max-width: 90vw; max-height: 90vh;" onclick="event.stopPropagation()">
+            <button onclick="app.closeImageModal()" style="position: absolute; top: -15px; right: -15px; background: #e40000; color: #fff; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 1.2rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10;">×</button>
+            <img id="lightbox-image-element" src="" style="max-width: 90vw; max-height: 85vh; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); border: 2px solid #ffffff;">
+        </div>
+    </div>
+
+    <script src="js/api.js?v=16.0"></script>
+    <script src="js/app.js?v=16.0"></script>
 </body>
 </html>
