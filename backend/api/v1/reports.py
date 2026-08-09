@@ -1,3 +1,5 @@
+import csv
+import io
 from datetime import datetime
 from typing import List, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Response
@@ -184,71 +186,77 @@ def export_bulk_csv(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ) -> Any:
-    """Manager / Report Authenticator exclusive route: Exports enterprise RF audit dataset with optional date range and store filter."""
-    query = db.query(StoreSurvey)
+    """Manager / Report Authenticator route: Exports enterprise RF audit dataset with optional date range and store filter."""
+    try:
+        query = db.query(StoreSurvey)
 
-    if start_date:
-        try:
-            sd = datetime.strptime(start_date, "%Y-%m-%d")
-            query = query.filter(StoreSurvey.created_at >= sd)
-        except Exception:
-            pass
+        if start_date:
+            try:
+                sd = datetime.strptime(start_date, "%Y-%m-%d")
+                query = query.filter(StoreSurvey.created_at >= sd)
+            except Exception:
+                pass
 
-    if end_date:
-        try:
-            ed = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
-            query = query.filter(StoreSurvey.created_at <= ed)
-        except Exception:
-            pass
+        if end_date:
+            try:
+                ed = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59)
+                query = query.filter(StoreSurvey.created_at <= ed)
+            except Exception:
+                pass
 
-    if store_name and store_name.strip():
-        query = query.filter(StoreSurvey.store_name.ilike(f"%{store_name.strip()}%"))
+        if store_name and store_name.strip():
+            query = query.filter(StoreSurvey.store_name.ilike(f"%{store_name.strip()}%"))
 
-    surveys = query.order_by(StoreSurvey.created_at.desc()).all()
-    
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow([
-        "Survey ID", "Store Site Name", "Field Engineer Mobile", 
-        "Repeater Present", "Repeater Working", "Repeater Photo URL",
-        "5G SC Present", "5G SC Working", "5G SC Photo URL",
-        "Total Hotspots Monitored", 
-        "Hotspot 1 Name", "H1 5G RSRP (dBm)", "H1 5G DL (Mbps)", "H1 5G UL (Mbps)", "H1 4G RSRP (dBm)", "H1 4G DL (Mbps)",
-        "Hotspot 2 Name", "H2 5G RSRP (dBm)", "H2 5G DL (Mbps)", "H2 5G UL (Mbps)", "H2 4G RSRP (dBm)", "H2 4G DL (Mbps)",
-        "Hotspot 3 Name", "H3 5G RSRP (dBm)", "H3 5G DL (Mbps)", "H3 5G UL (Mbps)", "H3 4G RSRP (dBm)", "H3 4G DL (Mbps)",
-        "Audit Created Date & Time"
-    ])
-    
-    for s in surveys:
-        hotspots = s.hotspots or []
-        h_cnt = len(hotspots)
-        eng = s.engineer.mobile_number if s.engineer else "N/A"
-        date_str = s.created_at.strftime("%Y-%m-%d %H:%M:%S") if s.created_at else "N/A"
+        surveys = query.order_by(StoreSurvey.created_at.desc()).all()
         
-        row = [
-            s.id, s.store_name, eng,
-            "YES" if s.repeater_present else "NO", "YES" if s.repeater_working else "NO", s.repeater_photo_url or "N/A",
-            "YES" if s.sc_present else "NO", "YES" if s.sc_working else "NO", s.sc_photo_url or "N/A",
-            h_cnt
-        ]
-
-        # Expand Hotspots 1, 2, 3 into columns for Excel sheet
-        for idx in range(3):
-            if idx < len(hotspots):
-                h = hotspots[idx]
-                row.extend([
-                    h.hotspot_name, 
-                    h.rsrp_5g or "N/A", h.dl_mb_5g or "0", h.ul_mb_5g or "0",
-                    h.rsrp_4g or "N/A", h.dl_mb_4g or "0"
-                ])
-            else:
-                row.extend(["N/A", "N/A", "N/A", "N/A", "N/A", "N/A"])
-
-        row.append(date_str)
-        writer.writerow(row)
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "Survey ID", "Store Site Name", "Field Engineer Mobile", 
+            "Repeater Present", "Repeater Working", "Repeater Photo URL",
+            "5G SC Present", "5G SC Working", "5G SC Photo URL",
+            "Total Hotspots Monitored", 
+            "Hotspot 1 Name", "H1 5G RSRP (dBm)", "H1 5G DL (Mbps)", "H1 5G UL (Mbps)", "H1 4G RSRP (dBm)", "H1 4G DL (Mbps)",
+            "Hotspot 2 Name", "H2 5G RSRP (dBm)", "H2 5G DL (Mbps)", "H2 5G UL (Mbps)", "H2 4G RSRP (dBm)", "H2 4G DL (Mbps)",
+            "Hotspot 3 Name", "H3 5G RSRP (dBm)", "H3 5G DL (Mbps)", "H3 5G UL (Mbps)", "H3 4G RSRP (dBm)", "H3 4G DL (Mbps)",
+            "Hotspot 4 Name", "H4 5G RSRP (dBm)", "H4 5G DL (Mbps)", "H4 5G UL (Mbps)", "H4 4G RSRP (dBm)", "H4 4G DL (Mbps)",
+            "Hotspot 5 Name", "H5 5G RSRP (dBm)", "H5 5G DL (Mbps)", "H5 5G UL (Mbps)", "H5 4G RSRP (dBm)", "H5 4G DL (Mbps)",
+            "Hotspot 6 Name", "H6 5G RSRP (dBm)", "H6 5G DL (Mbps)", "H6 5G UL (Mbps)", "H6 4G RSRP (dBm)", "H6 4G DL (Mbps)",
+            "Audit Created Date & Time"
+        ])
         
-    return Response(
-        content=output.getvalue(),
-        media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="Enterprise_Master_Store_Audit_Spreadsheet.csv"'}
-    )
+        for s in surveys:
+            hotspots = s.hotspots or []
+            h_cnt = len(hotspots)
+            eng = s.engineer.mobile_number if s.engineer else "N/A"
+            date_str = s.created_at.strftime("%Y-%m-%d %H:%M:%S") if s.created_at else "N/A"
+            
+            row = [
+                s.id, s.store_name, eng,
+                "YES" if s.repeater_present else "NO", "YES" if s.repeater_working else "NO", s.repeater_photo_url or "N/A",
+                "YES" if s.sc_present else "NO", "YES" if s.sc_working else "NO", s.sc_photo_url or "N/A",
+                h_cnt
+            ]
+
+            # Expand Hotspots 1 to 6 into columns for Excel sheet
+            for idx in range(6):
+                if idx < len(hotspots):
+                    h = hotspots[idx]
+                    row.extend([
+                        h.hotspot_name or f"Hotspot {idx+1}", 
+                        h.rsrp_5g or "N/A", h.dl_mb_5g or "0", h.ul_mb_5g or "0",
+                        h.rsrp_4g or "N/A", h.dl_mb_4g or "0"
+                    ])
+                else:
+                    row.extend(["N/A", "N/A", "N/A", "N/A", "N/A", "N/A"])
+
+            row.append(date_str)
+            writer.writerow(row)
+            
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={"Content-Disposition": 'attachment; filename="Enterprise_Master_Store_Audit_Spreadsheet.csv"'}
+        )
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=f"CSV Generation Error: {str(err)}")
