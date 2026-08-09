@@ -46,6 +46,8 @@ class StoreSurvey(Base):
     sc_photo_url = Column(String(1000), nullable=True)
 
     remarks = Column(String(2000), nullable=True) # Overall Store Audit Remarks
+    latitude = Column(Float, nullable=True) # Store GPS Latitude
+    longitude = Column(Float, nullable=True) # Store GPS Longitude
 
     created_at = Column(DateTime, default=get_utc_now)
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)

@@ -127,6 +127,8 @@ class StoreSurveyCreate(BaseModel):
     sc_working: bool = False
     sc_photo_url: Optional[str] = None
     remarks: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     hotspots: Optional[List[HotspotReadingCreate]] = []
 
 class StoreSurveyUpdate(BaseModel):
@@ -138,6 +140,8 @@ class StoreSurveyUpdate(BaseModel):
     sc_working: Optional[bool] = None
     sc_photo_url: Optional[str] = None
     remarks: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class StoreSurveyResponse(BaseModel):
     id: int
@@ -150,6 +154,8 @@ class StoreSurveyResponse(BaseModel):
     sc_working: bool
     sc_photo_url: Optional[str]
     remarks: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     engineer_mobile: Optional[str] = None

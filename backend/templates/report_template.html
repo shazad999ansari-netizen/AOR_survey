@@ -24,6 +24,9 @@
             <div><strong>Audit ID:</strong> #SRV-{{ survey.id }}</div>
             <div><strong>Engineer Account:</strong> {{ engineer_email }}</div>
             <div><strong>Date Completed:</strong> {{ date_str }}</div>
+            {% if survey.latitude and survey.longitude %}
+            <div><strong>GPS Location Tag:</strong> <a href="https://maps.google.com/?q={{ survey.latitude }},{{ survey.longitude }}" target="_blank" style="color: #2b6cb0; text-decoration: underline;">📍 {{ survey.latitude|round(4) }}° N, {{ survey.longitude|round(4) }}° E (View Map)</a></div>
+            {% endif %}
         </div>
     </div>
 

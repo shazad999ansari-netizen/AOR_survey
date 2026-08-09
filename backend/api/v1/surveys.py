@@ -29,7 +29,9 @@ def create_store_survey(
         sc_present=payload.sc_present,
         sc_working=payload.sc_working,
         sc_photo_url=payload.sc_photo_url,
-        remarks=payload.remarks
+        remarks=payload.remarks,
+        latitude=payload.latitude,
+        longitude=payload.longitude
     )
     db.add(survey)
     db.commit()
