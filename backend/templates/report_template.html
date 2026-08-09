@@ -109,6 +109,11 @@
                 </tr>
             </tbody>
         </table>
+        {% if survey.remarks %}
+        <div style="margin-top: 10px; padding: 10px 15px; background: #fffdf5; border: 1px solid #feebc8; border-radius: 4px; color: #744210; font-size: 9.5pt;">
+            <strong>📝 General Store Audit Remarks:</strong> {{ survey.remarks }}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Section 2: Hotspot Telemetry & Network Performance (Tabs 2 to 7) -->
@@ -152,6 +157,13 @@
                             <td>{{ hotspot.ul_mb_4g or 0 }} Mbps</td>
                             <td><strong>Lncell id / ARFCN:</strong> {{ hotspot.lncell_id or '-' }} / {{ hotspot.arfcn_4g or '-' }}</td>
                         </tr>
+                        {% if hotspot.remarks %}
+                        <tr>
+                            <td colspan="6" style="background: #fffdf5; color: #744210; padding: 8px 12px; border-top: 1px solid #feebc8; font-size: 9.5pt;">
+                                <strong>📝 Engineer Remarks:</strong> {{ hotspot.remarks }}
+                            </td>
+                        </tr>
+                        {% endif %}
                         <tr>
                             <td colspan="3" style="text-align: center; padding: 10px; background: #f8fafc;">
                                 <span style="font-size: 8.5pt; font-weight: bold; display: block; margin-bottom: 5px; color: #718096;">5G OCR SCREENSHOT PROOF</span>

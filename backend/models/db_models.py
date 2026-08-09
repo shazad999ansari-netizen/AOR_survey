@@ -45,6 +45,8 @@ class StoreSurvey(Base):
     sc_working = Column(Boolean, default=False)
     sc_photo_url = Column(String(1000), nullable=True)
 
+    remarks = Column(String(2000), nullable=True) # Overall Store Audit Remarks
+
     created_at = Column(DateTime, default=get_utc_now)
     updated_at = Column(DateTime, default=get_utc_now, onupdate=get_utc_now)
 
@@ -79,6 +81,8 @@ class HotspotReading(Base):
     # Visual proof Blob URLs
     snap_url_5g = Column(String(1000), nullable=True)
     snap_url_4g = Column(String(1000), nullable=True)
+
+    remarks = Column(String(2000), nullable=True) # Engineer Remarks per Hotspot
 
     created_at = Column(DateTime, default=get_utc_now)
 

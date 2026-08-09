@@ -107,6 +107,7 @@ class HotspotReadingCreate(BaseModel):
 
     snap_url_5g: Optional[str] = None
     snap_url_4g: Optional[str] = None
+    remarks: Optional[str] = None
 
 class HotspotReadingResponse(HotspotReadingCreate):
     id: int
@@ -125,6 +126,7 @@ class StoreSurveyCreate(BaseModel):
     sc_present: bool = False
     sc_working: bool = False
     sc_photo_url: Optional[str] = None
+    remarks: Optional[str] = None
     hotspots: Optional[List[HotspotReadingCreate]] = []
 
 class StoreSurveyUpdate(BaseModel):
@@ -135,6 +137,7 @@ class StoreSurveyUpdate(BaseModel):
     sc_present: Optional[bool] = None
     sc_working: Optional[bool] = None
     sc_photo_url: Optional[str] = None
+    remarks: Optional[str] = None
 
 class StoreSurveyResponse(BaseModel):
     id: int
@@ -146,6 +149,7 @@ class StoreSurveyResponse(BaseModel):
     sc_present: bool
     sc_working: bool
     sc_photo_url: Optional[str]
+    remarks: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     engineer_mobile: Optional[str] = None

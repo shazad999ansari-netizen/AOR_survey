@@ -28,7 +28,8 @@ def create_store_survey(
         repeater_photo_url=payload.repeater_photo_url,
         sc_present=payload.sc_present,
         sc_working=payload.sc_working,
-        sc_photo_url=payload.sc_photo_url
+        sc_photo_url=payload.sc_photo_url,
+        remarks=payload.remarks
     )
     db.add(survey)
     db.commit()
@@ -53,7 +54,8 @@ def create_store_survey(
                 ul_mb_4g=h.ul_mb_4g,
                 pci_4g=h.pci_4g,
                 snap_url_5g=h.snap_url_5g,
-                snap_url_4g=h.snap_url_4g
+                snap_url_4g=h.snap_url_4g,
+                remarks=h.remarks
             )
             db.add(reading)
         db.commit()

@@ -137,7 +137,8 @@ def save_hotspot_reading(
         ul_mb_4g=payload.ul_mb_4g,
         pci_4g=payload.pci_4g,
         snap_url_5g=payload.snap_url_5g,
-        snap_url_4g=payload.snap_url_4g
+        snap_url_4g=payload.snap_url_4g,
+        remarks=payload.remarks
     )
     db.add(new_reading)
     db.commit()

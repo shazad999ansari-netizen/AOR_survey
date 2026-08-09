@@ -188,6 +188,11 @@ class FieldPortalApp {
                     </div>
                 </div>
 
+                <div style="margin-top: 1rem;">
+                    <label class="form-label" style="font-weight: 600; color: var(--text-secondary); font-size: 0.85rem;">📝 Engineer Remarks / Issue Notes for ${hs.name}:</label>
+                    <textarea id="remarks-${hs.id}" class="form-input" rows="2" style="resize: vertical; font-family: inherit;" placeholder="Mention any specific issues (e.g. low coverage, interference, high latency, hardware obstruction)..."></textarea>
+                </div>
+
                 <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
                     <div id="save-status-${hs.id}" style="color: var(--text-secondary); font-size: 0.8rem; text-align: center;">Waiting for extraction or save.</div>
                     <button class="btn btn-secondary" onclick="app.saveHotspotToDB(${hs.id}, false)">
@@ -509,7 +514,8 @@ class FieldPortalApp {
             repeater_photo_url: this.repeater_photo_url || null,
             sc_present: document.getElementById('toggle-sc-present').checked,
             sc_working: document.getElementById('toggle-sc-working').checked,
-            sc_photo_url: this.sc_photo_url || null
+            sc_photo_url: this.sc_photo_url || null,
+            remarks: document.getElementById('store-remarks-input')?.value.trim() || null
         };
 
         const btn = document.getElementById('btn-save-tab-1');
@@ -663,7 +669,12 @@ class FieldPortalApp {
 
             summaryText += `📍 *${hs.name}:*\n`;
             summaryText += `   📡 *5G:* DL ${dl5g} Mbps | UL ${ul5g} Mbps | RSRP: ${rsrp5g} | ARFCN: ${arfcn5g}\n`;
-            summaryText += `   📶 *4G:* Lncell id: ${lncellId} | DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n\n`;
+            summaryText += `   📶 *4G:* Lncell id: ${lncellId} | DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n`;
+            const hsRemarks = document.getElementById(`remarks-${hs.id}`)?.value?.trim() || '';
+            if (hsRemarks) {
+                summaryText += `   📝 *Remarks:* ${hsRemarks}\n`;
+            }
+            summaryText += `\n`;
         });
 
         summaryText += `----------------------------------------\n`;
@@ -1125,7 +1136,8 @@ class FieldPortalApp {
             ul_mb_4g: parseOrNull(readCell(`cell-${hsId}-ul_mb_4g`), true),
             
             snap_url_5g: store.snap_url_5g || null,
-            snap_url_4g: store.snap_url_4g || null
+            snap_url_4g: store.snap_url_4g || null,
+            remarks: document.getElementById(`remarks-${hsId}`)?.value?.trim() || null
         };
 
         try {

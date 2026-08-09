@@ -90,6 +90,7 @@ def export_individual_survey_excel(
     writer.writerow(["5G Small Cell Installed", "YES" if survey.sc_present else "NO"])
     writer.writerow(["5G Small Cell Operational", "YES" if survey.sc_working else "NO"])
     writer.writerow(["5G SC Photo URL", survey.sc_photo_url or "N/A"])
+    writer.writerow(["General Store Remarks", getattr(survey, "remarks", None) or "N/A"])
     writer.writerow(["Audit Created Timestamp", survey.created_at.strftime("%Y-%m-%d %H:%M:%S") if survey.created_at else "N/A"])
     writer.writerow([])
     
@@ -98,16 +99,19 @@ def export_individual_survey_excel(
     writer.writerow([
         "Hotspot Name", 
         "5G Band", "5G PCI", "5G RSRP (dBm)", "5G RSRQ (dB)", "5G SINR (dB)", "5G ARFCN", "5G Cell ID", "5G DL (Mbps)", "5G UL (Mbps)", "5G Ping (ms)",
-        "4G Band", "4G PCI", "4G RSRP (dBm)", "4G RSRQ (dB)", "4G SINR (dB)", "4G ARFCN", "4G Cell ID", "4G DL (Mbps)", "4G UL (Mbps)", "4G Ping (ms)",
-        "5G Proof URL", "4G Proof URL"
+        "4G Band", "4G PCI", "4G RSRP (dBm)", "4G RSRQ (dB)", "4G SINR (dB)", "4G ARFCN", "4G Lncell ID", "4G DL (Mbps)", "4G UL (Mbps)", "4G Ping (ms)",
+        "5G Proof URL", "4G Proof URL", "Engineer Remarks"
     ])
     
     for h in (survey.hotspots or []):
+        enb_str = str(h.enb) if h.enb is not None else ""
+        cid_str = str(h.cid) if h.cid is not None else ""
+        lncell_id = f"{enb_str}{cid_str}" if (enb_str or cid_str) else "N/A"
         writer.writerow([
             h.hotspot_name,
             getattr(h, 'band_5g', 'n78'), h.pci_5g or 'N/A', h.rsrp_5g or 'N/A', getattr(h, 'rsrq_5g', 'N/A'), getattr(h, 'sinr_5g', 'N/A'), h.arfcn_5g or 'N/A', getattr(h, 'cid_5g', None) or h.gnb or 'N/A', h.dl_mb_5g or '0', h.ul_mb_5g or '0', getattr(h, 'ping_ms_5g', 'N/A'),
-            getattr(h, 'band_4g', 'B3'), h.pci_4g or 'N/A', h.rsrp_4g or 'N/A', getattr(h, 'rsrq_4g', 'N/A'), getattr(h, 'sinr_4g', 'N/A'), h.arfcn_4g or 'N/A', h.cid or h.enb or 'N/A', h.dl_mb_4g or '0', h.ul_mb_4g or '0', getattr(h, 'ping_ms_4g', 'N/A'),
-            h.snap_url_5g or 'N/A', h.snap_url_4g or 'N/A'
+            getattr(h, 'band_4g', 'B3'), h.pci_4g or 'N/A', h.rsrp_4g or 'N/A', getattr(h, 'rsrq_4g', 'N/A'), getattr(h, 'sinr_4g', 'N/A'), h.arfcn_4g or 'N/A', lncell_id, h.dl_mb_4g or '0', h.ul_mb_4g or '0', getattr(h, 'ping_ms_4g', 'N/A'),
+            h.snap_url_5g or 'N/A', h.snap_url_4g or 'N/A', getattr(h, 'remarks', None) or 'N/A'
         ])
 
     filename = f"Survey_#{survey.id}_{survey.store_name.replace(' ', '_')}_Excel_Export.csv"
