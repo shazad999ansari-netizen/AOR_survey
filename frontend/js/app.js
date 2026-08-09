@@ -588,12 +588,13 @@ class FieldPortalApp {
         // Populate 5G Extracted Telemetry & Speedtest speeds
         const has5gData = m.gnb !== undefined || m.cid_5g !== undefined || m.pci_5g !== undefined || 
                           m.rsrp_5g !== undefined || m.dl_mb_5g !== undefined || m.ul_mb_5g !== undefined || 
-                          m.dl_mb !== undefined || m.ul_mb !== undefined;
+                          m.dl_mb !== undefined || m.ul_mb !== undefined || m.arfcn_5g !== undefined;
         if (has5gData) {
             updateCell('gnb', getVal(['gnb', 'gnb_id', 'gNodeB']));
             updateCell('cid_5g', getVal(['cid_5g', 'cid', 'cell_id_5g', 'cell_id']));
             updateCell('pci_5g', getVal(['pci_5g', 'pci']));
             updateCell('band_5g', getVal(['band_5g', 'band']));
+            updateCell('arfcn_5g', getVal(['arfcn_5g', 'arfcn', 'narfcn']));
             updateCell('rsrp_5g', getVal(['rsrp_5g', 'rsrp']), ' dBm');
             updateCell('rsrq_5g', getVal(['rsrq_5g', 'rsrq']), ' dB');
             updateCell('sinr_5g', getVal(['sinr_5g', 'sinr']), ' dB');
@@ -604,12 +605,13 @@ class FieldPortalApp {
         // Populate 4G Extracted Telemetry & Speedtest speeds
         const has4gData = m.enb !== undefined || m.cid_4g !== undefined || m.cid !== undefined || 
                           m.pci_4g !== undefined || m.rsrp_4g !== undefined || m.dl_mb_4g !== undefined || 
-                          m.ul_mb_4g !== undefined || m.dl_mb !== undefined || m.ul_mb !== undefined;
+                          m.ul_mb_4g !== undefined || m.dl_mb !== undefined || m.ul_mb !== undefined || m.arfcn_4g !== undefined;
         if (has4gData) {
             updateCell('enb', getVal(['enb', 'enb_id', 'eNodeB']));
             updateCell('cid', getVal(['cid', 'cid_4g', 'cell_id_4g', 'cell_id']));
             updateCell('pci_4g', getVal(['pci_4g', 'pci']));
             updateCell('band_4g', getVal(['band_4g', 'band']));
+            updateCell('arfcn_4g', getVal(['arfcn_4g', 'arfcn', 'earfcn']));
             updateCell('rsrp_4g', getVal(['rsrp_4g', 'rsrp']), ' dBm');
             updateCell('rsrq_4g', getVal(['rsrq_4g', 'rsrq']), ' dB');
             updateCell('sinr_4g', getVal(['sinr_4g', 'sinr']), ' dB');
@@ -733,15 +735,16 @@ class FieldPortalApp {
             const textFull = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
             console.log(`[OCR] Raw text [mode=${mode}]:`, textFull.substring(0, 300));
 
-            const isGNetTrack = /gnettrack|g-nettrack|mcc|mnc|tac|gnodeb|enodeb|serving|cellid|rsrp|rsrq|sinr|snr/i.test(textFull);
+            const isGNetTrack = /gnettrack|g-nettrack|mcc|mnc|tac|gnodeb|enodeb|serving|cellid|rsrp|rsrq|sinr|snr|arfcn/i.test(textFull);
 
-            // G-NetTrack: Extract Cell Telemetry ONLY (Fail-proof RSRP, RSRQ, SINR, GNB, ENB, CID, PCI, BAND)
+            // G-NetTrack: Extract Cell Telemetry ONLY (Fail-proof RSRP, RSRQ, SINR, GNB, ENB, CID, PCI, BAND, ARFCN)
             if (isGNetTrack || mode === 'telemetry') {
                 const gnbM = textFull.match(/(?:gnb|gnodeb)[:\s]*(\d+)/i);
                 const enbM = textFull.match(/(?:enb|enodeb)[:\s]*(\d+)/i);
                 const cidM = textFull.match(/(?:cid|cell\s*id)[:\s]*(\d+)/i);
                 const pciM = textFull.match(/(?:pci)[:\s]*(\d+)/i);
                 const bandM = textFull.match(/(?:band)[:\s]*([a-z0-9]+)/i);
+                const arfcnM = textFull.match(/(?:arfcn|earfcn|narfcn)[:\s]*(\d+)/i);
 
                 // Robust RSRP parser (Handles "RSRP: -68", "RSRP -68", "RSRP: 68", "LEVEL -70", etc.)
                 const rsrpM = textFull.match(/(?:rsrp|level)[:\s]*([-\u2212\u2013\u2014]?\s*\d{2,3})/i);
@@ -754,6 +757,7 @@ class FieldPortalApp {
                 if (enbM) extracted.enb = parseInt(enbM[1]);
                 if (cidM) extracted.cid = parseInt(cidM[1]);
                 if (pciM) extracted.pci = parseInt(pciM[1]);
+                if (arfcnM) extracted.arfcn = parseInt(arfcnM[1]);
                 if (bandM) {
                     let bStr = bandM[1].toUpperCase();
                     if (bStr.startsWith('L')) bStr = 'B' + bStr.substring(1);
@@ -848,7 +852,7 @@ class FieldPortalApp {
             for (let f of files5gTel) {
                 const ocr = await this.performRealImageOCR(f, 'telemetry');
                 this.applyMetricsToUI(hsId, {
-                    gnb: ocr.gnb, cid_5g: ocr.cid, pci_5g: ocr.pci,
+                    gnb: ocr.gnb, cid_5g: ocr.cid, pci_5g: ocr.pci, arfcn_5g: ocr.arfcn,
                     band_5g: ocr.band ? (ocr.band.startsWith('N') ? ocr.band : `n${ocr.band}`) : null,
                     rsrp_5g: ocr.rsrp, rsrq_5g: ocr.rsrq, sinr_5g: ocr.sinr
                 });
@@ -866,7 +870,7 @@ class FieldPortalApp {
             for (let f of files4gTel) {
                 const ocr = await this.performRealImageOCR(f, 'telemetry');
                 this.applyMetricsToUI(hsId, {
-                    enb: ocr.enb, cid: ocr.cid, pci_4g: ocr.pci,
+                    enb: ocr.enb, cid: ocr.cid, pci_4g: ocr.pci, arfcn_4g: ocr.arfcn,
                     band_4g: ocr.band ? (ocr.band.startsWith('B') ? ocr.band : `B${ocr.band}`) : null,
                     rsrp_4g: ocr.rsrp, rsrq_4g: ocr.rsrq, sinr_4g: ocr.sinr
                 });
@@ -945,12 +949,14 @@ class FieldPortalApp {
             gnb: parseOrNull(readCell(`cell-${hsId}-gnb`)),
             cid_5g: parseOrNull(readCell(`cell-${hsId}-cid_5g`)),
             pci_5g: parseOrNull(readCell(`cell-${hsId}-pci_5g`)),
+            arfcn_5g: parseOrNull(readCell(`cell-${hsId}-arfcn_5g`)),
             band_5g: readCell(`cell-${hsId}-band_5g`) || null,
             rsrp_5g: parseOrNull(readCell(`cell-${hsId}-rsrp_5g`), true),
             
             enb: parseOrNull(readCell(`cell-${hsId}-enb`)),
             cid: parseOrNull(readCell(`cell-${hsId}-cid`)),
             pci_4g: parseOrNull(readCell(`cell-${hsId}-pci_4g`)),
+            arfcn_4g: parseOrNull(readCell(`cell-${hsId}-arfcn_4g`)),
             band_4g: readCell(`cell-${hsId}-band_4g`) || null,
             rsrp_4g: parseOrNull(readCell(`cell-${hsId}-rsrp_4g`), true),
             
