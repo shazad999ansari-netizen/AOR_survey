@@ -1479,6 +1479,80 @@ class FieldPortalApp {
         this.switchTab('tab-8');
     }
 
+    async openAdminDashboardModal() {
+        const modal = document.getElementById('admin-dashboard-modal');
+        if (modal) modal.style.display = 'flex';
+
+        const tbody = document.getElementById('admin-modal-table-body');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">⏳ Loading all store audits from Azure SQL...</td></tr>';
+
+        try {
+            const data = await api.getAdminDashboardStats();
+            document.getElementById('admin-stat-total-surveys').innerText = data.total_surveys || 0;
+            document.getElementById('admin-stat-total-hotspots').innerText = data.total_hotspots_monitored || 0;
+            document.getElementById('admin-stat-rep-rate').innerText = `${data.repeater_health_rate || 100}%`;
+
+            const surveys = data.recent_surveys || [];
+            if (surveys.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">No store audits recorded yet.</td></tr>';
+                return;
+            }
+
+            let html = '';
+            surveys.forEach(s => {
+                const repBadge = s.repeater_working ? '<span style="color: #10b981; font-weight: 700;">YES</span>' : '<span style="color: #ef4444; font-weight: 700;">NO</span>';
+                const scBadge = s.sc_working ? '<span style="color: #10b981; font-weight: 700;">YES</span>' : '<span style="color: #ef4444; font-weight: 700;">NO</span>';
+                const dt = s.created_at ? new Date(s.created_at).toLocaleDateString() : 'N/A';
+
+                html += `<tr style="border-bottom: 1px solid #1e293b;" class="admin-table-row">
+                    <td style="padding: 10px; font-weight: 700; color: #38bdf8;">#SRV-${s.id}</td>
+                    <td style="padding: 10px; font-weight: 600; color: #fff;">${s.store_name}</td>
+                    <td style="padding: 10px;">${repBadge}</td>
+                    <td style="padding: 10px;">${scBadge}</td>
+                    <td style="padding: 10px;">${s.hotspots_count || 0} Points</td>
+                    <td style="padding: 10px; color: #94a3b8;">${dt}</td>
+                    <td style="padding: 10px; text-align: center; display: flex; gap: 6px; justify-content: center;">
+                        <button class="btn btn-secondary btn-sm" onclick="app.downloadSurveyPDF(${s.id}, '${s.store_name.replace(/'/g, "\\'")}')">📑 PDF</button>
+                        <button class="btn btn-secondary btn-sm" style="color: #10b981; border-color: #10b981;" onclick="app.downloadSurveyExcel(${s.id})">📊 Excel</button>
+                    </td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        } catch (e) {
+            console.warn("Failed to load admin stats:", e);
+            this.showToast(`Admin Stats Error: ${e.message}`, 'error');
+        }
+    }
+
+    closeAdminDashboardModal() {
+        const modal = document.getElementById('admin-dashboard-modal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    filterAdminStoreTable() {
+        const query = document.getElementById('admin-search-input')?.value?.toLowerCase() || '';
+        const rows = document.querySelectorAll('.admin-table-row');
+        rows.forEach(r => {
+            const txt = r.innerText.toLowerCase();
+            r.style.display = txt.includes(query) ? '' : 'none';
+        });
+    }
+
+    async downloadAdminBulkCSV() {
+        this.showToast('Generating Master Excel for all stores...', 'info');
+        window.location.href = `${api.baseURL}/reports/admin/export-bulk-csv`;
+    }
+
+    async downloadSurveyPDF(surveyId, storeName) {
+        this.showToast(`Exporting PDF for #${surveyId} ${storeName}...`, 'info');
+        window.location.href = `${api.baseURL}/surveys/${surveyId}/export-pdf`;
+    }
+
+    async downloadSurveyExcel(surveyId) {
+        this.showToast(`Exporting Excel for #${surveyId}...`, 'info');
+        window.location.href = `${api.baseURL}/surveys/${surveyId}/export-excel`;
+    }
+
     showToast(message, type = 'success', durationMs = 4000) {
         const container = document.getElementById('toast-center');
         if (!container) return;

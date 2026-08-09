@@ -133,7 +133,10 @@
                     <span style="font-size: 0.75rem; color: #e40000; font-weight: 700; text-transform: uppercase;">Active Mobile Survey</span>
                     <h3 id="current-store-title" style="font-size: 1.2rem; margin-top: 2px;">Store: Not Started</h3>
                 </div>
-                <div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="app.openAdminDashboardModal()" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color: #38bdf8; border: 1px solid #38bdf8; font-weight: 700; cursor: pointer;">
+                        👑 Admin All Stores
+                    </button>
                     <span id="survey-id-badge" style="background: #ffffff; color: #e40000; font-weight: 700; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; border: 1px solid #fecaca;">No ID</span>
                 </div>
             </div>
@@ -390,7 +393,67 @@
         </div>
     </div>
 
-    <script src="js/api.js?v=29.0"></script>
-    <script src="js/app.js?v=29.0"></script>
+    <!-- ADMIN ALL STORES HISTORY & AUDIT MODAL -->
+    <div id="admin-dashboard-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; backdrop-filter: blur(6px); justify-content: center; align-items: center; padding: 1rem;">
+        <div class="glass-panel" style="width: 95%; max-width: 1100px; max-height: 90vh; overflow-y: auto; padding: 1.5rem; background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.3); color: #f8fafc; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.9);">
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e293b; padding-bottom: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <span style="color: #38bdf8; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Enterprise Audit Center</span>
+                    <h3 style="font-size: 1.4rem; color: #ffffff; margin: 2px 0 0 0;">👑 Admin All Stores Audit History & Reports</h3>
+                </div>
+                <button onclick="app.closeAdminDashboardModal()" style="background: #e40000; color: #fff; border: none; padding: 6px 14px; font-weight: 700; cursor: pointer; border-radius: 6px;">✕ Close</button>
+            </div>
+
+            <!-- Admin KPI Stats -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: #1e293b; padding: 1rem; border-radius: 8px; border-left: 4px solid #38bdf8;">
+                    <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Total Stores Audited</div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #38bdf8;" id="admin-stat-total-surveys">0</div>
+                </div>
+                <div style="background: #1e293b; padding: 1rem; border-radius: 8px; border-left: 4px solid #10b981;">
+                    <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Hotspots Monitored</div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #10b981;" id="admin-stat-total-hotspots">0</div>
+                </div>
+                <div style="background: #1e293b; padding: 1rem; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                    <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase;">Repeater Health Rate</div>
+                    <div style="font-size: 1.6rem; font-weight: 800; color: #f59e0b;" id="admin-stat-rep-rate">100%</div>
+                </div>
+            </div>
+
+            <!-- Filter & Bulk Download -->
+            <div style="display: flex; justify-content: space-between; gap: 10px; margin-bottom: 1rem; flex-wrap: wrap;">
+                <input type="text" id="admin-search-input" class="form-input" style="flex: 1; min-width: 250px; background: #1e293b; color: #fff; border-color: #334155;" placeholder="🔍 Search Store Name, Audit ID (#SRV-X), or Mobile..." onkeyup="app.filterAdminStoreTable()">
+                <button class="btn btn-primary" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-color: #059669;" onclick="app.downloadAdminBulkCSV()">
+                    📥 Download Master Excel (.csv) - All Stores
+                </button>
+            </div>
+
+            <!-- Stores Table -->
+            <div style="overflow-x: auto; max-height: 450px;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;" id="admin-stores-table">
+                    <thead>
+                        <tr style="background: #1e293b; color: #94a3b8; text-transform: uppercase; font-size: 0.75rem;">
+                            <th style="padding: 10px; border-bottom: 1px solid #334155;">Audit ID</th>
+                            <th style="padding: 10px; border-bottom: 1px solid #334155;">Store Site Name</th>
+                            <th style="padding: 10px; border-bottom: 1px solid #334155;">Repeater</th>
+                            <th style="padding: 10px; border-bottom: 1px solid #334155;">Small Cell</th>
+                            <th style="padding: 10px; border-bottom: 1px solid #334155;">Hotspots</th>
+                            <th style="padding: 10px; border-bottom: 1px solid #334155;">Date</th>
+                            <th style="padding: 10px; border-bottom: 1px solid #334155; text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-modal-table-body">
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">Loading store audit records...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api.js?v=30.0"></script>
+    <script src="js/app.js?v=30.0"></script>
 </body>
 </html>
