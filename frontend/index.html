@@ -28,11 +28,14 @@
 
     <!-- Sticky Mobile App Bar -->
     <header class="glass-header">
-        <div class="brand-logo">
+        <div class="brand-logo" onclick="app.goHome()" style="cursor: pointer;" title="Go to Home">
             <div class="brand-icon">⚡</div>
             <span class="brand-text">Field Portal</span>
         </div>
         <div class="nav-actions view-hidden" id="nav-actions-auth">
+            <button class="btn btn-secondary btn-sm" id="btn-home" onclick="app.goHome()">
+                🏠 Home
+            </button>
             <div class="user-pill">
                 <span id="user-display-mobile">+18005550199</span>
                 <span class="role-badge" id="user-role-badge">ENGINEER</span>
@@ -338,7 +341,7 @@
 
     </main>
 
-    <script src="js/api.js?v=14.0"></script>
-    <script src="js/app.js?v=14.0"></script>
+    <script src="js/api.js?v=15.0"></script>
+    <script src="js/app.js?v=15.0"></script>
 </body>
 </html>

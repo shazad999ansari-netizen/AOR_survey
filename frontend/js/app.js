@@ -443,6 +443,14 @@ class FieldPortalApp {
         window.scrollTo({ top: 60, behavior: 'smooth' });
     }
 
+    goHome() {
+        this.showView('survey');
+        const dashBtn = document.getElementById('btn-toggle-dashboard');
+        if (dashBtn) dashBtn.innerHTML = '📊 Admin';
+        this.switchTab('tab-1');
+        this.showToast('Returned to Store Survey Home', 'info');
+    }
+
     async initStoreSurveyState() {
         try {
             const surveys = await api.getSurveys();
