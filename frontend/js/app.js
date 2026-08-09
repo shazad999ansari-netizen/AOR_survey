@@ -649,16 +649,20 @@ class FieldPortalApp {
 
             const isGNetTrack = /gnettrack|g-nettrack|mcc|mnc|tac|gnodeb|enodeb|serving|cellid|rsrp|rsrq|sinr|snr/i.test(textFull);
 
-            // G-NetTrack: Extract Cell Telemetry ONLY
+            // G-NetTrack: Extract Cell Telemetry ONLY (Fail-proof RSRP, RSRQ, SINR, GNB, ENB, CID, PCI, BAND)
             if (isGNetTrack || mode === 'telemetry') {
-                const gnbM = textFull.match(/(?:gnb|gnodeb)[:\s]+(\d+)/i);
-                const enbM = textFull.match(/(?:enb|enodeb)[:\s]+(\d+)/i);
-                const cidM = textFull.match(/(?:cid|cell\s*id)[:\s]+(\d+)/i);
-                const pciM = textFull.match(/(?:pci)[:\s]+(\d+)/i);
-                const bandM = textFull.match(/(?:band)[:\s]+([a-z0-9]+)/i);
-                const rsrpM = textFull.match(/(?:rsrp)[:\s]+(-?\d+)/i);
-                const rsrqM = textFull.match(/(?:rsrq)[:\s]+(-?\d+)/i);
-                const snrM  = textFull.match(/(?:sinr|snr)[:\s]+(-?\d+(?:\.\d+)?)/i);
+                const gnbM = textFull.match(/(?:gnb|gnodeb)[:\s]*(\d+)/i);
+                const enbM = textFull.match(/(?:enb|enodeb)[:\s]*(\d+)/i);
+                const cidM = textFull.match(/(?:cid|cell\s*id)[:\s]*(\d+)/i);
+                const pciM = textFull.match(/(?:pci)[:\s]*(\d+)/i);
+                const bandM = textFull.match(/(?:band)[:\s]*([a-z0-9]+)/i);
+
+                // Robust RSRP parser (Handles "RSRP: -68", "RSRP -68", "RSRP: 68", "LEVEL -70", etc.)
+                const rsrpM = textFull.match(/(?:rsrp|level)[:\s]*([-\u2212\u2013\u2014]?\s*\d{2,3})/i);
+                // Robust RSRQ parser (Handles "RSRQ: -11", "RSRQ -11", "QUAL -11", etc.)
+                const rsrqM = textFull.match(/(?:rsrq|qual)[:\s]*([-\u2212\u2013\u2014]?\s*\d{1,2})/i);
+                // Robust SINR / SNR parser (Handles "SINR: 30.0", "SNR: 30.0", etc.)
+                const snrM  = textFull.match(/(?:sinr|snr)[:\s]*([-\u2212\u2013\u2014]?\s*\d+(?:\.\d+)?)/i);
 
                 if (gnbM) extracted.gnb = parseInt(gnbM[1]);
                 if (enbM) extracted.enb = parseInt(enbM[1]);
@@ -669,9 +673,30 @@ class FieldPortalApp {
                     if (bStr.startsWith('L')) bStr = 'B' + bStr.substring(1);
                     extracted.band = bStr;
                 }
-                if (rsrpM) extracted.rsrp = parseFloat(rsrpM[1]);
-                if (rsrqM) extracted.rsrq = parseFloat(rsrqM[1]);
-                if (snrM)  extracted.sinr = parseFloat(snrM[1]);
+
+                if (rsrpM) {
+                    const cleanStr = rsrpM[1].replace(/\s+/g, '').replace(/[\u2212\u2013\u2014]/g, '-');
+                    const v = parseFloat(cleanStr);
+                    if (!isNaN(v)) {
+                        extracted.rsrp = v < 0 ? v : -v; // RSRP is always negative dBm
+                    }
+                }
+
+                if (rsrqM) {
+                    const cleanStr = rsrqM[1].replace(/\s+/g, '').replace(/[\u2212\u2013\u2014]/g, '-');
+                    const v = parseFloat(cleanStr);
+                    if (!isNaN(v)) {
+                        extracted.rsrq = v < 0 ? v : -v; // RSRQ is always negative dB
+                    }
+                }
+
+                if (snrM) {
+                    const cleanStr = snrM[1].replace(/\s+/g, '').replace(/[\u2212\u2013\u2014]/g, '-');
+                    const v = parseFloat(cleanStr);
+                    if (!isNaN(v)) {
+                        extracted.sinr = v;
+                    }
+                }
             }
 
             // AUTO mode: If it looks like a Speedtest, use crop-based extraction
