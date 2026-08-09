@@ -164,6 +164,10 @@ class FieldPortalApp {
                                     <td><strong>BAND:</strong> <span id="cell-${hs.id}-band_4g" class="val-highlight-4g" contenteditable="true">-</span></td>
                                 </tr>
                                 <tr>
+                                    <td><strong>ARFCN:</strong> <span id="cell-${hs.id}-arfcn_5g" class="val-highlight-5g" contenteditable="true">-</span></td>
+                                    <td><strong>ARFCN:</strong> <span id="cell-${hs.id}-arfcn_4g" class="val-highlight-4g" contenteditable="true">-</span></td>
+                                </tr>
+                                <tr>
                                     <td><strong>RSRP:</strong> <span id="cell-${hs.id}-rsrp_5g" class="val-highlight-5g" contenteditable="true">-</span></td>
                                     <td><strong>RSRP:</strong> <span id="cell-${hs.id}-rsrp_4g" class="val-highlight-4g" contenteditable="true">-</span></td>
                                 </tr>
@@ -852,16 +856,16 @@ class FieldPortalApp {
             const textFull = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
             console.log(`[OCR] Raw text [mode=${mode}]:`, textFull.substring(0, 300));
 
-            const isGNetTrack = /gnettrack|g-nettrack|mcc|mnc|tac|gnodeb|enodeb|serving|cellid|rsrp|rsrq|sinr|snr|arfcn/i.test(textFull);
-
-            // G-NetTrack: Extract Cell Telemetry ONLY (Fail-proof RSRP, RSRQ, SINR, GNB, ENB, CID, PCI, BAND, ARFCN)
-            if (isGNetTrack || mode === 'telemetry') {
+            const isGNetTrack = /gne            // G-NetTrack: Extract Cell Telemetry ONLY (Fail-proof RSRP, RSRQ, SINR, GNB, ENB, CID, PCI, BAND, ARFCN)
+            if (isGNetTrack || mode === 'telemetry' || mode === 'auto') {
                 const gnbM = textFull.match(/(?:gnb|gnodeb)[:\s]*(\d+)/i);
                 const enbM = textFull.match(/(?:enb|enodeb)[:\s]*(\d+)/i);
                 const cidM = textFull.match(/(?:cid|cell\s*id)[:\s]*(\d+)/i);
                 const pciM = textFull.match(/(?:pci)[:\s]*(\d+)/i);
                 const bandM = textFull.match(/(?:band)[:\s]*([a-z0-9]+)/i);
-                const arfcnM = textFull.match(/(?:arfcn|earfcn|narfcn)[:\s]*(\d+)/i);
+
+                // Multi-pattern ARFCN parser: Handles "ARFCN: 627360", "ARFCN 627360", "EARFCN 3050", "NARFCN 627360", "ARFCN: 627 360", etc.
+                const arfcnM = textFull.match(/(?:arfcn|afrcn|earfcn|narfcn|dl\s*arfcn|ul\s*arfcn|freq)[:\s=-]*([0-9\s]{3,8})/i);
 
                 // Robust RSRP parser (Handles "RSRP: -68", "RSRP -68", "RSRP: 68", "LEVEL -70", etc.)
                 const rsrpM = textFull.match(/(?:rsrp|level)[:\s]*([-\u2212\u2013\u2014]?\s*\d{2,3})/i);
@@ -870,11 +874,25 @@ class FieldPortalApp {
                 // Robust SINR / SNR parser (Handles "SINR: 30.0", "SNR: 30.0", etc.)
                 const snrM  = textFull.match(/(?:sinr|snr)[:\s]*([-\u2212\u2013\u2014]?\s*\d+(?:\.\d+)?)/i);
 
-                if (gnbM) extracted.gnb = parseInt(gnbM[1]);
-                if (enbM) extracted.enb = parseInt(enbM[1]);
-                if (cidM) extracted.cid = parseInt(cidM[1]);
-                if (pciM) extracted.pci = parseInt(pciM[1]);
-                if (arfcnM) extracted.arfcn = parseInt(arfcnM[1]);
+                if (gnbM) extracted.gnb = parseInt(gnbM[1], 10);
+                if (enbM) extracted.enb = parseInt(enbM[1], 10);
+                if (cidM) extracted.cid = parseInt(cidM[1], 10);
+                if (pciM) extracted.pci = parseInt(pciM[1], 10);
+
+                if (arfcnM) {
+                    const cleanNum = arfcnM[1].replace(/\s+/g, '');
+                    const num = parseInt(cleanNum, 10);
+                    if (!isNaN(num) && num > 0) {
+                        extracted.arfcn = num;
+                    }
+                }
+
+                // Fallback ARFCN finder if label missed: look for 5-6 digit numbers near "BAND" or "N78"
+                if (!extracted.arfcn) {
+                    const nrArfcn = textFull.match(/(?:n78|n28|n77|n1|n3|n5|n8|n41|b1|b3|b5|b8|b40|b41)[:\s]*(\d{4,7})/i);
+                    if (nrArfcn) extracted.arfcn = parseInt(nrArfcn[1], 10);
+                }
+
                 if (bandM) {
                     let bStr = bandM[1].toUpperCase();
                     if (bStr.startsWith('L')) bStr = 'B' + bStr.substring(1);
@@ -930,8 +948,8 @@ class FieldPortalApp {
         const files4gTel = dataStore.files_4g_telemetry || [];
         const files4gSpd = dataStore.files_4g_speedtest || [];
 
-        const files5g = [...files5gTel, ...files5gSpd, ...(dataStore.files_5g || [])];
-        const files4g = [...files4gTel, ...files4gSpd, ...(dataStore.files_4g || [])];
+        const files5g = [...files5gTel, ...files5gSpd, ...(dataStore.files_5g || [])].filter((f, i, self) => self.indexOf(f) === i);
+        const files4g = [...files4gTel, ...files4gSpd, ...(dataStore.files_4g || [])].filter((f, i, self) => self.indexOf(f) === i);
 
         const btn = document.getElementById(`btn-ocr-${hsId}`);
         const originalText = btn ? btn.innerHTML : '';
@@ -965,58 +983,35 @@ class FieldPortalApp {
                 }
             }
 
-            // 3. OCR on 5G Telemetry Screenshot
-            for (let f of files5gTel) {
-                const ocr = await this.performRealImageOCR(f, 'telemetry');
-                this.applyMetricsToUI(hsId, {
-                    gnb: ocr.gnb, cid_5g: ocr.cid, pci_5g: ocr.pci, arfcn_5g: ocr.arfcn,
-                    band_5g: ocr.band ? (ocr.band.startsWith('N') ? ocr.band : `n${ocr.band}`) : null,
-                    rsrp_5g: ocr.rsrp, rsrq_5g: ocr.rsrq, sinr_5g: ocr.sinr
-                });
-            }
-
-            // 4. OCR on 5G Speedtest Screenshot (Dedicated Speedtest Scanner)
-            for (let f of files5gSpd) {
-                const ocr = await this.performRealImageOCR(f, 'speedtest');
-                if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
-                    this.applyMetricsToUI(hsId, { dl_mb_5g: ocr.dl_mb, ul_mb_5g: ocr.ul_mb });
+            // 3. Process ALL 5G Screenshots (Telemetry & Speedtest dropzones)
+            for (let f of files5g) {
+                const telOcr = await this.performRealImageOCR(f, 'telemetry');
+                if (Object.keys(telOcr).length > 0) {
+                    this.applyMetricsToUI(hsId, {
+                        gnb: telOcr.gnb, cid_5g: telOcr.cid, pci_5g: telOcr.pci, arfcn_5g: telOcr.arfcn,
+                        band_5g: telOcr.band ? (telOcr.band.startsWith('N') ? telOcr.band : `n${telOcr.band}`) : null,
+                        rsrp_5g: telOcr.rsrp, rsrq_5g: telOcr.rsrq, sinr_5g: telOcr.sinr
+                    });
+                }
+                const spdOcr = await this.performRealImageOCR(f, 'speedtest');
+                if (spdOcr.dl_mb !== undefined || spdOcr.ul_mb !== undefined) {
+                    this.applyMetricsToUI(hsId, { dl_mb_5g: spdOcr.dl_mb, ul_mb_5g: spdOcr.ul_mb });
                 }
             }
 
-            // 5. OCR on 4G Telemetry Screenshot
-            for (let f of files4gTel) {
-                const ocr = await this.performRealImageOCR(f, 'telemetry');
-                this.applyMetricsToUI(hsId, {
-                    enb: ocr.enb, cid: ocr.cid, pci_4g: ocr.pci, arfcn_4g: ocr.arfcn,
-                    band_4g: ocr.band ? (ocr.band.startsWith('B') ? ocr.band : `B${ocr.band}`) : null,
-                    rsrp_4g: ocr.rsrp, rsrq_4g: ocr.rsrq, sinr_4g: ocr.sinr
-                });
-            }
-
-            // 6. OCR on 4G Speedtest Screenshot (Dedicated Speedtest Scanner)
-            for (let f of files4gSpd) {
-                const ocr = await this.performRealImageOCR(f, 'speedtest');
-                if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
-                    this.applyMetricsToUI(hsId, { dl_mb_4g: ocr.dl_mb, ul_mb_4g: ocr.ul_mb });
+            // 4. Process ALL 4G Screenshots (Telemetry & Speedtest dropzones)
+            for (let f of files4g) {
+                const telOcr = await this.performRealImageOCR(f, 'telemetry');
+                if (Object.keys(telOcr).length > 0) {
+                    this.applyMetricsToUI(hsId, {
+                        enb: telOcr.enb, cid: telOcr.cid, pci_4g: telOcr.pci, arfcn_4g: telOcr.arfcn,
+                        band_4g: telOcr.band ? (telOcr.band.startsWith('B') ? telOcr.band : `B${telOcr.band}`) : null,
+                        rsrp_4g: telOcr.rsrp, rsrq_4g: telOcr.rsrq, sinr_4g: telOcr.sinr
+                    });
                 }
-            }
-
-            // Fallback for generic dropzones if used
-            if (files5gSpd.length === 0 && files5g.length > 0) {
-                for (let f of files5g) {
-                    const ocr = await this.performRealImageOCR(f, 'auto');
-                    if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
-                        this.applyMetricsToUI(hsId, { dl_mb_5g: ocr.dl_mb, ul_mb_5g: ocr.ul_mb });
-                    }
-                }
-            }
-
-            if (files4gSpd.length === 0 && files4g.length > 0) {
-                for (let f of files4g) {
-                    const ocr = await this.performRealImageOCR(f, 'auto');
-                    if (ocr.dl_mb !== undefined || ocr.ul_mb !== undefined) {
-                        this.applyMetricsToUI(hsId, { dl_mb_4g: ocr.dl_mb, ul_mb_4g: ocr.ul_mb });
-                    }
+                const spdOcr = await this.performRealImageOCR(f, 'speedtest');
+                if (spdOcr.dl_mb !== undefined || spdOcr.ul_mb !== undefined) {
+                    this.applyMetricsToUI(hsId, { dl_mb_4g: spdOcr.dl_mb, ul_mb_4g: spdOcr.ul_mb });
                 }
             }
 
