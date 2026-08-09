@@ -878,7 +878,9 @@ class FieldPortalApp {
             const textFull = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
             console.log(`[OCR] Raw text [mode=${mode}]:`, textFull.substring(0, 300));
 
-            const isGNetTrack = /gne            // G-NetTrack: Extract Cell Telemetry ONLY (Fail-proof RSRP, RSRQ, SINR, GNB, ENB, CID, PCI, BAND, ARFCN)
+            const isGNetTrack = /gnettrack|g-nettrack|mcc|mnc|tac|gnodeb|enodeb|serving|cellid|rsrp|rsrq|sinr|snr|arfcn/i.test(textFull);
+
+            // G-NetTrack: Extract Cell Telemetry ONLY (Fail-proof RSRP, RSRQ, SINR, GNB, ENB, CID, PCI, BAND, ARFCN)
             if (isGNetTrack || mode === 'telemetry' || mode === 'auto') {
                 const gnbM = textFull.match(/(?:gnb|gnodeb)[:\s]*(\d+)/i);
                 const enbM = textFull.match(/(?:enb|enodeb)[:\s]*(\d+)/i);
