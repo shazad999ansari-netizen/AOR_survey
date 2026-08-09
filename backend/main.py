@@ -12,6 +12,9 @@ from backend.api.v1 import auth, surveys, hotspots, reports
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(name)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+import asyncio
+from backend.telegram_bot import run_telegram_bot_loop
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Execute database initialization and RBAC seed accounts on application startup
@@ -20,7 +23,11 @@ async def lifespan(app: FastAPI):
         init_db()
     except Exception as e:
         logger.error(f"Failed to run init_db during lifespan startup: {e}")
+    
+    # Launch Telegram Bot background worker if TELEGRAM_BOT_TOKEN is provided
+    bot_task = asyncio.create_task(run_telegram_bot_loop())
     yield
+    bot_task.cancel()
     logger.info("Application shutdown completed.")
 
 app = FastAPI(
