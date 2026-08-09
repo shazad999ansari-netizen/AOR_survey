@@ -82,10 +82,9 @@ class FieldPortalApp {
                             <input type="text" class="form-input" style="font-size: 1.1rem; font-weight: 700; max-width: 420px; min-height: 40px; padding: 6px 12px; border-color: #e40000; color: #111827;" value="${hs.name}" onchange="app.renameHotspot(${hs.id}, this.value)" placeholder="Enter Hotspot Location Name">
                         </div>
                     </div>
-                    ${hs.isCustom ? `
-                    <button class="btn btn-secondary btn-sm" style="color: #ef4444; border-color: #fca5a5;" onclick="app.deleteCustomHotspot(${hs.id})">
+                    <button class="btn btn-secondary btn-sm" style="color: #ef4444; border-color: #fca5a5; background: #fff5f5; font-weight: 700; cursor: pointer;" onclick="app.deleteHotspot(${hs.id})">
                         🗑️ Delete Hotspot
-                    </button>` : ''}
+                    </button>
                 </div>
 
                 <div class="hardware-grid" style="margin-top: 0; margin-bottom: 1.5rem;">
@@ -191,9 +190,14 @@ class FieldPortalApp {
 
                 <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 10px;">
                     <div id="save-status-${hs.id}" style="color: var(--text-secondary); font-size: 0.8rem; text-align: center;">Waiting for extraction or save.</div>
-                    <button class="btn btn-secondary" onclick="app.saveHotspotToDB(${hs.id}, false)">
-                        💾 Confirm & Save Reading
-                    </button>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" style="flex: 1;" onclick="app.saveHotspotToDB(${hs.id}, false)">
+                            💾 Confirm & Save Reading
+                        </button>
+                        <button class="btn btn-secondary" style="border-color: #38bdf8; color: #0284c7; font-weight: 700;" onclick="app.promptAddCustomHotspot()">
+                            ➕ Add New Hotspot Point
+                        </button>
+                    </div>
                     <button class="btn btn-primary" onclick="app.saveHotspotToDB(${hs.id}, true, '${nextTab}')">
                         ${nextLabel}
                     </button>
@@ -234,16 +238,27 @@ class FieldPortalApp {
         }
     }
 
-    deleteCustomHotspot(hsId) {
+    deleteHotspot(hsId) {
         const hs = this.hotspotDefinitions.find(h => h.id === hsId);
         if (!hs) return;
-        if (!confirm(`Delete "${hs.name}" hotspot test?`)) return;
+        if (!confirm(`Are you sure you want to delete "${hs.name}" hotspot point?`)) return;
 
         this.hotspotDefinitions = this.hotspotDefinitions.filter(h => h.id !== hsId);
         delete this.hotspotsData[hsId];
+        this.renderTabButtons();
         this.generateHotspotTabs();
-        this.switchTab('tab-1');
-        this.showToast(`Custom hotspot removed.`, 'info');
+        this.updateSurveyProgress();
+
+        if (this.hotspotDefinitions.length > 0) {
+            this.switchTab(this.hotspotDefinitions[0].tab);
+        } else {
+            this.switchTab('tab-1');
+        }
+        this.showToast(`Hotspot "${hs.name}" removed.`, 'info');
+    }
+
+    deleteCustomHotspot(hsId) {
+        this.deleteHotspot(hsId);
     }
 
     // --- 6-Digit OTP Focus Grid Helper ---
