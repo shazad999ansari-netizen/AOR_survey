@@ -635,70 +635,58 @@ class FieldPortalApp {
         }
     }
 
-    async copyExecutiveSummary() {
+    generateSummaryText() {
         const storeName = document.getElementById('store-name-input')?.value.trim() || 'Store Site';
         const srvId = this.activeSurveyId ? `#SRV-${this.activeSurveyId}` : 'Draft';
+        const repPres = document.getElementById('toggle-rep-present')?.checked ? 'Present' : 'None';
+        const scPres = document.getElementById('toggle-sc-present')?.checked ? 'Present' : 'None';
         
         let summaryText = `⚡ *TELECOM STORE FIELD AUDIT REPORT*\n`;
         summaryText += `🏪 *Store:* ${storeName} (${srvId})\n`;
         summaryText += `📅 *Date:* ${new Date().toLocaleDateString()}\n`;
+        summaryText += `🔧 *Hardware:* Repeater: ${repPres} | Small Cell: ${scPres}\n`;
         summaryText += `----------------------------------------\n`;
-        summaryText += `📡 *Hotspots Surveyed:* ${this.hotspotDefinitions.length}\n`;
+        summaryText += `📡 *HOTSPOTS SURVEY SUMMARY (${this.hotspotDefinitions.length} Hotspots):*\n\n`;
 
         this.hotspotDefinitions.forEach(hs => {
-            const cell5g = document.getElementById(`cell-${hs.id}-dl_mb_5g`)?.innerText || '-';
+            const dl5g = document.getElementById(`cell-${hs.id}-dl_mb_5g`)?.innerText || '-';
+            const ul5g = document.getElementById(`cell-${hs.id}-ul_mb_5g`)?.innerText || '-';
             const rsrp5g = document.getElementById(`cell-${hs.id}-rsrp_5g`)?.innerText || '-';
-            summaryText += `• ${hs.name}: 5G DL ${cell5g} Mbps | RSRP ${rsrp5g}\n`;
+            const arfcn5g = document.getElementById(`cell-${hs.id}-arfcn_5g`)?.innerText || '-';
+
+            const dl4g = document.getElementById(`cell-${hs.id}-dl_mb_4g`)?.innerText || '-';
+            const ul4g = document.getElementById(`cell-${hs.id}-ul_mb_4g`)?.innerText || '-';
+            const rsrp4g = document.getElementById(`cell-${hs.id}-rsrp_4g`)?.innerText || '-';
+            const arfcn4g = document.getElementById(`cell-${hs.id}-arfcn_4g`)?.innerText || '-';
+
+            summaryText += `📍 *${hs.name}:*\n`;
+            summaryText += `   📡 *5G:* DL ${dl5g} Mbps | UL ${ul5g} Mbps | RSRP: ${rsrp5g} | ARFCN: ${arfcn5g}\n`;
+            summaryText += `   📶 *4G:* DL ${dl4g} Mbps | UL ${ul4g} Mbps | RSRP: ${rsrp4g} | ARFCN: ${arfcn4g}\n\n`;
         });
 
         summaryText += `----------------------------------------\n`;
         summaryText += `✅ *Generated via Mobile Field Engineer Portal*`;
+        return summaryText;
+    }
 
+    async copyExecutiveSummary() {
+        const summaryText = this.generateSummaryText();
         try {
             await navigator.clipboard.writeText(summaryText);
-            this.showToast('📋 Executive Summary copied to clipboard!', 'success');
+            this.showToast('📋 5G & 4G Executive Summary copied to clipboard!', 'success');
         } catch (e) {
-            this.showToast('Could not copy automatically. Please select text manually.', 'warning');
+            this.showToast('Could not copy automatically.', 'warning');
         }
     }
 
     shareViaWhatsApp() {
-        const storeName = document.getElementById('store-name-input')?.value.trim() || 'Store Site';
-        const srvId = this.activeSurveyId ? `#SRV-${this.activeSurveyId}` : 'Draft';
-        
-        let summaryText = `⚡ *TELECOM STORE FIELD AUDIT REPORT*\n`;
-        summaryText += `🏪 *Store:* ${storeName} (${srvId})\n`;
-        summaryText += `📡 *Total Hotspots:* ${this.hotspotDefinitions.length}\n\n`;
-
-        this.hotspotDefinitions.forEach(hs => {
-            const cell5g = document.getElementById(`cell-${hs.id}-dl_mb_5g`)?.innerText || '-';
-            const rsrp5g = document.getElementById(`cell-${hs.id}-rsrp_5g`)?.innerText || '-';
-            summaryText += `🔹 *${hs.name}:* 5G DL ${cell5g} Mbps (RSRP: ${rsrp5g})\n`;
-        });
-
-        summaryText += `\n✅ *Audit Report Completed!*`;
-        
+        const summaryText = this.generateSummaryText();
         const url = `https://wa.me/?text=${encodeURIComponent(summaryText)}`;
         window.open(url, '_blank');
     }
 
     shareViaTelegram() {
-        const storeName = document.getElementById('store-name-input')?.value.trim() || 'Store Site';
-        const srvId = this.activeSurveyId ? `#SRV-${this.activeSurveyId}` : 'Draft';
-        
-        let summaryText = `⚡ *TELECOM STORE FIELD AUDIT REPORT*\n`;
-        summaryText += `🏪 *Store:* ${storeName} (${srvId})\n`;
-        summaryText += `📡 *Total Hotspots:* ${this.hotspotDefinitions.length}\n\n`;
-
-        this.hotspotDefinitions.forEach(hs => {
-            const cell5g = document.getElementById(`cell-${hs.id}-dl_mb_5g`)?.innerText || '-';
-            const rsrp5g = document.getElementById(`cell-${hs.id}-rsrp_5g`)?.innerText || '-';
-            const arfcn5g = document.getElementById(`cell-${hs.id}-arfcn_5g`)?.innerText || '-';
-            summaryText += `🔹 *${hs.name}:* 5G DL ${cell5g} Mbps (RSRP: ${rsrp5g} | ARFCN: ${arfcn5g})\n`;
-        });
-
-        summaryText += `\n✅ *Audit Report Completed via Field Portal!*`;
-        
+        const summaryText = this.generateSummaryText();
         const url = `https://t.me/share/url?url=${encodeURIComponent('https://telecom-field-portal.onrender.com')}&text=${encodeURIComponent(summaryText)}`;
         window.open(url, '_blank');
     }
