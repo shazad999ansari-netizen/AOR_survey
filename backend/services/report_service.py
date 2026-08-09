@@ -51,10 +51,10 @@ class ReportService:
         avg_5g_rsrp = round(sum([h.rsrp_5g or -100.0 for h in hotspots]) / total_hotspots, 1) if total_hotspots > 0 else 0.0
         avg_5g_dl = round(sum([h.dl_mb_5g or 0.0 for h in hotspots]) / total_hotspots, 1) if total_hotspots > 0 else 0.0
         
-        hw_ok = (survey.repeater_present and survey.repeater_working and survey.sc_present and survey.sc_working)
-        hardware_status = "100% OPTIMAL" if hw_ok else "REVIEW NEEDED"
+        repeater_status = "YES" if survey.repeater_working else "NO"
+        sc_status = "YES" if survey.sc_working else "NO"
+        hardware_status = f"Repeater: {repeater_status} | SC: {sc_status}"
 
-        # Prepare hotspot image sources
         # Prepare hotspot image sources
         prepared_hotspots = []
         for h in hotspots:
@@ -93,6 +93,8 @@ class ReportService:
             total_hotspots=total_hotspots,
             avg_5g_rsrp=avg_5g_rsrp,
             avg_5g_dl=avg_5g_dl,
+            repeater_status=repeater_status,
+            sc_status=sc_status,
             hardware_status=hardware_status,
             repeater_photo_src=self._resolve_photo_path(getattr(survey, "repeater_photo_url", None)),
             sc_photo_src=self._resolve_photo_path(getattr(survey, "sc_photo_url", None)),

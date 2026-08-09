@@ -71,12 +71,12 @@
                     <td><strong>Network Repeater System</strong></td>
                     <td>
                         <span class="badge {{ 'badge-success' if survey.repeater_present else 'badge-danger' }}">
-                            {{ 'YES (PRESENT)' if survey.repeater_present else 'NO (NOT PRESENT)' }}
+                            {{ 'YES' if survey.repeater_present else 'NO' }}
                         </span>
                     </td>
                     <td>
                         <span class="badge {{ 'badge-success' if survey.repeater_working else 'badge-danger' }}">
-                            {{ 'OPERATIONAL' if survey.repeater_working else 'OFFLINE' }}
+                            {{ 'YES (WORKING)' if survey.repeater_working else 'NO (OFFLINE)' }}
                         </span>
                     </td>
                     <td style="text-align: center;">
@@ -91,12 +91,12 @@
                     <td><strong>5G Small Cell (SC) Unit</strong></td>
                     <td>
                         <span class="badge {{ 'badge-success' if survey.sc_present else 'badge-danger' }}">
-                            {{ 'YES (PRESENT)' if survey.sc_present else 'NO (NOT PRESENT)' }}
+                            {{ 'YES' if survey.sc_present else 'NO' }}
                         </span>
                     </td>
                     <td>
                         <span class="badge {{ 'badge-success' if survey.sc_working else 'badge-danger' }}">
-                            {{ 'OPERATIONAL' if survey.sc_working else 'OFFLINE' }}
+                            {{ 'YES (WORKING)' if survey.sc_working else 'NO (OFFLINE)' }}
                         </span>
                     </td>
                     <td style="text-align: center;">

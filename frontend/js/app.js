@@ -639,13 +639,17 @@ class FieldPortalApp {
     generateSummaryText() {
         const storeName = document.getElementById('store-name-input')?.value.trim() || 'Store Site';
         const srvId = this.activeSurveyId ? `#SRV-${this.activeSurveyId}` : 'Draft';
-        const repPres = document.getElementById('toggle-rep-present')?.checked ? 'Present' : 'None';
-        const scPres = document.getElementById('toggle-sc-present')?.checked ? 'Present' : 'None';
+        const repPres = document.getElementById('toggle-rep-present')?.checked ? 'YES' : 'NO';
+        const repWork = document.getElementById('toggle-rep-working')?.checked ? 'YES' : 'NO';
+        const scPres = document.getElementById('toggle-sc-present')?.checked ? 'YES' : 'NO';
+        const scWork = document.getElementById('toggle-sc-working')?.checked ? 'YES' : 'NO';
         
         let summaryText = `⚡ *TELECOM STORE FIELD AUDIT REPORT*\n`;
         summaryText += `🏪 *Store:* ${storeName} (${srvId})\n`;
         summaryText += `📅 *Date:* ${new Date().toLocaleDateString()}\n`;
-        summaryText += `🔧 *Hardware:* Repeater: ${repPres} | Small Cell: ${scPres}\n`;
+        summaryText += `🔧 *Hardware Status:*\n`;
+        summaryText += `   • Repeater Installed: ${repPres} | Operational: ${repWork}\n`;
+        summaryText += `   • 5G Small Cell Installed: ${scPres} | Operational: ${scWork}\n`;
         summaryText += `----------------------------------------\n`;
         summaryText += `📡 *HOTSPOTS SURVEY SUMMARY (${this.hotspotDefinitions.length} Hotspots):*\n\n`;
 
