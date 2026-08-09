@@ -149,7 +149,7 @@ class FieldPortalApp {
                             <tbody>
                                 <tr>
                                     <td><strong>gNB:</strong> <span id="cell-${hs.id}-gnb" class="val-highlight-5g" contenteditable="true">-</span></td>
-                                    <td><strong>eNB:</strong> <span id="cell-${hs.id}-enb" class="val-highlight-4g" contenteditable="true">-</span></td>
+                                    <td><strong>Lncell id:</strong> <span id="cell-${hs.id}-lncell_id" class="val-highlight-4g" contenteditable="true">-</span></td>
                                 </tr>
                                 <tr>
                                     <td><strong>CID (Cell ID):</strong> <span id="cell-${hs.id}-cid_5g" class="val-highlight-5g" contenteditable="true">-</span></td>
@@ -741,8 +741,18 @@ class FieldPortalApp {
                           m.pci_4g !== undefined || m.rsrp_4g !== undefined || m.dl_mb_4g !== undefined || 
                           m.ul_mb_4g !== undefined || m.dl_mb !== undefined || m.ul_mb !== undefined || m.arfcn_4g !== undefined;
         if (has4gData) {
-            updateCell('enb', getVal(['enb', 'enb_id', 'eNodeB']));
-            updateCell('cid', getVal(['cid', 'cid_4g', 'cell_id_4g', 'cell_id']));
+            const enbVal = getVal(['enb', 'enb_id', 'eNodeB']);
+            const cidVal = getVal(['cid', 'cid_4g', 'cell_id_4g', 'cell_id']);
+            updateCell('enb', enbVal);
+            updateCell('cid', cidVal);
+
+            // Direct concatenation without hyphen for Lncell id!
+            const cleanEnb = (enbVal !== null && enbVal !== undefined) ? String(enbVal).trim() : '';
+            const cleanCid = (cidVal !== null && cidVal !== undefined) ? String(cidVal).trim() : '';
+            if (cleanEnb || cleanCid) {
+                updateCell('lncell_id', `${cleanEnb}${cleanCid}`);
+            }
+
             updateCell('pci_4g', getVal(['pci_4g', 'pci']));
             updateCell('band_4g', getVal(['band_4g', 'band']));
             updateCell('arfcn_4g', getVal(['arfcn_4g', 'arfcn', 'earfcn']));

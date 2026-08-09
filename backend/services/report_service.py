@@ -60,14 +60,7 @@ class ReportService:
         for h in hotspots:
             enb_str = str(h.enb) if h.enb is not None else ""
             cid_str = str(h.cid) if h.cid is not None else ""
-            if enb_str and cid_str:
-                enb_cid_str = f"{enb_str}-{cid_str}"
-            elif enb_str:
-                enb_cid_str = enb_str
-            elif cid_str:
-                enb_cid_str = cid_str
-            else:
-                enb_cid_str = "-"
+            lncell_str = f"{enb_str}{cid_str}" if (enb_str or cid_str) else "-"
 
             h_dict = {
                 "hotspot_name": h.hotspot_name,
@@ -79,7 +72,7 @@ class ReportService:
                 "arfcn_5g": h.arfcn_5g,
                 "enb": h.enb,
                 "cid": h.cid,
-                "enb_cid": enb_cid_str,
+                "lncell_id": lncell_str,
                 "arfcn_4g": h.arfcn_4g,
                 "rsrp_4g": h.rsrp_4g,
                 "dl_mb_4g": h.dl_mb_4g,
