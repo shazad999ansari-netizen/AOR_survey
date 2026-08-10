@@ -84,7 +84,7 @@
                         <input type="tel" id="auth-mobile" class="form-input" placeholder="e.g. +917738079919 or 9876543210" value="+917738079919">
                     </div>
 
-                    <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="btn-send-otp" onclick="window.app ? window.app.requestOTP() : null">
+                    <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="btn-send-otp" onclick="app.requestOTP()">
                         📲 Request 6-Digit OTP Code
                     </button>
                 </div>
@@ -108,7 +108,7 @@
                         OTP Expires in: <span id="otp-timer" style="color: var(--accent-cyan); font-weight: 700;">05:00</span>
                     </div>
 
-                    <button type="button" class="btn btn-primary" style="width: 100%;" id="btn-verify-otp" onclick="window.app ? window.app.verifyOTP() : null">
+                    <button type="button" class="btn btn-primary" style="width: 100%;" id="btn-verify-otp" onclick="app.verifyOTP()">
                         🔐 Verify OTP & Access Field Portal
                     </button>
 
@@ -448,31 +448,15 @@
         </div>
     </div>
 
-    <script src="js/api.js?v=65.0"></script>
-    <script src="js/app.js?v=65.0"></script>
+    <script src="js/api.js?v=46.0"></script>
+    <script src="js/app.js?v=46.0"></script>
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const badge = document.createElement('div');
             badge.id = 'version-badge';
-            badge.innerText = 'v65.0';
+            badge.innerText = 'v46.0';
             badge.style.cssText = 'position:fixed;bottom:10px;left:10px;z-index:99999;background:rgba(228,0,0,0.85);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:12px;font-family:sans-serif;pointer-events:none;';
             document.body.appendChild(badge);
-
-            const btnSend = document.getElementById('btn-send-otp');
-            if (btnSend) {
-                btnSend.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (window.app && window.app.requestOTP) window.app.requestOTP();
-                });
-            }
-
-            const btnVerify = document.getElementById('btn-verify-otp');
-            if (btnVerify) {
-                btnVerify.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (window.app && window.app.verifyOTP) window.app.verifyOTP();
-                });
-            }
         });
     </script>
 </body>

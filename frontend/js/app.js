@@ -308,21 +308,9 @@ class FieldPortalApp {
         });
     }
 
-    instantDirectLogin() {
-        const mockUser = {
-            id: 1,
-            mobile_number: '+917738079919',
-            role: 'admin'
-        };
-        api.setToken('demo_jwt_token_12345', mockUser);
-        this.showToast('Instant Admin Access Granted! Welcome to Field Portal', 'success');
-        this.onLoginSuccess(mockUser);
-    }
-
     fillDemo(mobileNumber) {
         document.getElementById('auth-mobile').value = mobileNumber;
-        this.showToast(`Selected ${mobileNumber}. Requesting OTP...`, 'info');
-        this.requestOTP();
+        this.showToast(`Test mobile number set to ${mobileNumber}`, 'success');
     }
 
     checkExistingAuth() {
@@ -342,42 +330,36 @@ class FieldPortalApp {
         }
 
         const btn = document.getElementById('btn-send-otp');
-        if (btn) {
-            btn.innerHTML = '<span class="spinner"></span> Dispatching OTP...';
-            btn.disabled = true;
-        }
+        btn.innerHTML = '<span class="spinner"></span> Dispatching SMS via Azure...';
+        btn.disabled = true;
 
         try {
+            const res = await api.sendOTP(mobile);
             this.activeMobileNumber = mobile;
-            const elDisp = document.getElementById('display-otp-mobile');
-            if (elDisp) elDisp.innerText = mobile;
+            document.getElementById('display-otp-mobile').innerText = mobile;
 
-            const step1 = document.getElementById('otp-step-1');
-            const step2 = document.getElementById('otp-step-2');
-            if (step1) {
-                step1.classList.add('view-hidden');
-                step1.style.display = 'none';
-            }
-            if (step2) {
-                step2.classList.remove('view-hidden');
-                step2.style.display = 'block';
-            }
+            // Switch to Step 2
+            document.getElementById('otp-step-1').classList.add('view-hidden');
+            document.getElementById('otp-step-2').classList.remove('view-hidden');
             
-            const digits = ['1', '2', '3', '4', '5', '6'];
-            digits.forEach((d, idx) => {
-                const el = document.getElementById(`otp-${idx + 1}`);
-                if (el) el.value = d;
-            });
+            // If demo code returned (for local zero-friction test), pre-fill it for user convenience!
+            if (res.demo_otp_code) {
+                const digits = res.demo_otp_code.split('');
+                digits.forEach((d, idx) => {
+                    const el = document.getElementById(`otp-${idx + 1}`);
+                    if (el) el.value = d;
+                });
+                this.showToast(`[SMS TEST OTP CODE]: ${res.demo_otp_code}`, 'success', 8000);
+            } else {
+                this.showToast('OTP dispatched via Azure Communication Services SMS!', 'success');
+            }
 
-            this.showToast('OTP Code 123456 ready! Click Verify OTP to sign in.', 'success', 8000);
-            this.startOTPTimer(300);
+            this.startOTPTimer(300); // 5 mins countdown
         } catch (error) {
             this.showToast(`OTP Request Error: ${error.message}`, 'error');
         } finally {
-            if (btn) {
-                btn.innerHTML = '📲 Request 6-Digit OTP Code';
-                btn.disabled = false;
-            }
+            btn.innerHTML = '📲 Request 6-Digit OTP Code';
+            btn.disabled = false;
         }
     }
 
@@ -401,16 +383,8 @@ class FieldPortalApp {
 
     resetOTPStep() {
         clearInterval(this.timerInterval);
-        const step1 = document.getElementById('otp-step-1');
-        const step2 = document.getElementById('otp-step-2');
-        if (step2) {
-            step2.classList.add('view-hidden');
-            step2.style.display = 'none';
-        }
-        if (step1) {
-            step1.classList.remove('view-hidden');
-            step1.style.display = 'block';
-        }
+        document.getElementById('otp-step-2').classList.add('view-hidden');
+        document.getElementById('otp-step-1').classList.remove('view-hidden');
     }
 
     // --- Step 2: Verify OTP ---
@@ -424,29 +398,19 @@ class FieldPortalApp {
         }
 
         const btn = document.getElementById('btn-verify-otp');
-        if (btn) {
-            btn.innerHTML = '<span class="spinner"></span> Verifying OTP...';
-            btn.disabled = true;
-        }
+        btn.innerHTML = '<span class="spinner"></span> Verifying OTP against Azure SQL...';
+        btn.disabled = true;
 
         try {
+            const data = await api.verifyOTP(this.activeMobileNumber, otpCode);
             clearInterval(this.timerInterval);
-            const isOwnerOrAdmin = (this.activeMobileNumber || '').includes('7738079919') || (this.activeMobileNumber || '').includes('0999');
-            const mockUser = {
-                id: 1,
-                mobile_number: this.activeMobileNumber || '+917738079919',
-                role: isOwnerOrAdmin ? 'admin' : 'engineer'
-            };
-            api.setToken('demo_jwt_token_12345', mockUser);
-            this.showToast(`Verified! Welcome to Field Portal (${mockUser.mobile_number})`, 'success');
-            this.onLoginSuccess(mockUser);
+            this.showToast(`Verified! Welcome to Field Portal (${data.user.mobile_number})`, 'success');
+            this.onLoginSuccess(data.user);
         } catch (error) {
-            this.showToast(`Verification Error: ${error.message}`, 'error');
+            this.showToast(error.message, 'error');
         } finally {
-            if (btn) {
-                btn.innerHTML = '🔐 Verify OTP & Access Field Portal';
-                btn.disabled = false;
-            }
+            btn.innerHTML = '🔐 Verify OTP & Access Field Portal';
+            btn.disabled = false;
         }
     }
 
@@ -902,8 +866,6 @@ class FieldPortalApp {
         this.updateSurveyProgress();
     }
 
-
-
     async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, invertColors = false) {
         return new Promise((resolve) => {
             try {
@@ -916,14 +878,13 @@ class FieldPortalApp {
                         const cropW = Math.floor(img.width * wRatio);
                         const cropH = Math.floor(img.height * hRatio);
 
+                        // 2x Upscale for crisp OCR text
                         canvas.width = Math.max(cropW * 2, 20);
                         canvas.height = Math.max(cropH * 2, 20);
                         const ctx = canvas.getContext('2d');
-                        ctx.imageSmoothingEnabled = true;
-                        ctx.imageSmoothingQuality = 'high';
 
                         if (invertColors) {
-                            ctx.filter = 'invert(100%) grayscale(100%)';
+                            ctx.filter = 'invert(100%) grayscale(100%) contrast(200%)';
                         }
                         ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, canvas.width, canvas.height);
                         canvas.toBlob((blob) => {
@@ -948,12 +909,12 @@ class FieldPortalApp {
 
             const extracted = {};
 
-            // ===== SPEEDTEST MODE: Pure Tesseract.js Box Crop + Full-Text Fallback =====
+            // ===== SPEEDTEST MODE: Precision box crop first (x: 4..48%, y: 7..19%), then fallback =====
             if (mode === 'speedtest') {
                 try {
                     let dl = null, ul = null;
 
-                    const extractFromCrop = async (xR, yR, wR, hR, inv = false) => {
+                    const extractFromCrop = async (xR, yR, wR, hR, inv) => {
                         try {
                             const blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, inv);
                             const res = await Tesseract.recognize(blob, 'eng');
@@ -965,17 +926,16 @@ class FieldPortalApp {
                         } catch (e) { return null; }
                     };
 
-                    // 1. Download Box Crop (Left 4..48%, Top 7..19%)
-                    dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, false);
-                    if (dl === null) dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, true);
+                    // 1. Download Box Crop (Left: 4%-48%, Top: 7%-19% - stops before Ping at 20%)
+                    dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, true);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, false);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12, true);
                     if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12, false);
 
-                    // If 21 was misread for 27.0
-                    if (dl === 21 || dl === 21.0) dl = 27.0;
-
-                    // 2. Upload Box Crop (Right 52..96%, Top 7..19%)
-                    ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, false);
-                    if (ul === null) ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, true);
+                    // 2. Upload Box Crop (Right: 52%-96%, Top: 7%-19% - stops before Ping at 20%)
+                    ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, true);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, false);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12, true);
                     if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12, false);
 
                     // 3. Fallback: Full text scan if crops returned nothing
@@ -1006,25 +966,6 @@ class FieldPortalApp {
                                         break;
                                     } else if (nums.length === 1) {
                                         if (dl === null) dl = nums[0];
-                                        else if (ul === null) { ul = nums[0]; break; }
-                                    }
-                                }
-                            } else if (dlLineIdx < ulLineIdx) {
-                                if (dl === null) {
-                                    for (let j = dlLineIdx + 1; j < ulLineIdx && j < pingLineIdx; j++) {
-                                        const nums = getNums(lines[j]);
-                                        if (nums.length > 0) { dl = nums[0]; break; }
-                                    }
-                                }
-                                if (ul === null) {
-                                    for (let j = ulLineIdx + 1; j < pingLineIdx; j++) {
-                                        const nums = getNums(lines[j]);
-                                        if (nums.length > 0) { ul = nums[0]; break; }
-                                    }
-                                }
-                            }
-                        }
-                    }
                                         else if (ul === null) { ul = nums[0]; break; }
                                     }
                                 }
@@ -1645,6 +1586,4 @@ class FieldPortalApp {
     }
 }
 
-// Explicitly bind app instance to global window object for inline HTML event handlers
-window.app = new FieldPortalApp();
-var app = window.app;
+const app = new FieldPortalApp();
