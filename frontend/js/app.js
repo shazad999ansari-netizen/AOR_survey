@@ -904,81 +904,33 @@ class FieldPortalApp {
 
             const extracted = {};
 
-            // ===== SPEEDTEST MODE: Precision Crop Inside Download / Upload Rounded Box =====
+            // ===== SPEEDTEST MODE: Simple Regex — number strictly between Download...Mbps and Upload...Mbps =====
             if (mode === 'speedtest') {
-                console.log('[OCR Speedtest] Starting precision crop extraction inside Download/Upload boxes...');
-                
-                let dlVal = null;
-                let ulVal = null;
-
-                // Ookla Speedtest Android App Layout:
-                // - App header (SPEEDTEST title) occupies y≈0% to y≈13%
-                // - Download rounded box: top-left, x=2%, y=13%, width=47%, height=22%
-                //   → The big speed number is at: x=5%, y=17%, width=40%, height=14%
-                // - Upload rounded box: top-right, x=51%, y=13%, width=47%, height=22%
-                //   → The big speed number is at: x=54%, y=17%, width=40%, height=14%
-                // - Ping row starts BELOW the boxes at y≈38% — never reached by our crops
-
                 try {
-                    // Crop STRICTLY inside Download rounded box — the big number + Mbps
-                    const dlCrop = await this.cropRegionOfImage(file, 0.05, 0.17, 0.40, 0.14);
-                    const dlResult = await Tesseract.recognize(dlCrop, 'eng');
-                    const dlText = (dlResult && dlResult.data && dlResult.data.text) ? dlResult.data.text.replace(/\s+/g, ' ').trim() : '';
-                    console.log('[OCR Speedtest] Download box crop text:', JSON.stringify(dlText));
+                    const resultFull = await Tesseract.recognize(file, 'eng');
+                    const rawText = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
+                    console.log('[OCR Speedtest] Raw text:', JSON.stringify(rawText.substring(0, 400)));
 
-                    // Pick first valid numeric token from crop (this is the DL speed, not Ping)
-                    const dlNums = dlText.match(/(\d{1,4}(?:\.\d{1,2})?)/g);
-                    if (dlNums) {
-                        for (const ns of dlNums) {
-                            const v = parseFloat(ns);
-                            if (!isNaN(v) && v >= 0.1 && v < 10000) { dlVal = v; break; }
-                        }
+                    // Rule: number between "Download" ... "Mbps"
+                    // Rule: number between "Upload"   ... "Mbps"
+                    // Ignore EVERYTHING else — time, ping, jitter, status bar, etc.
+                    const dlMatch = rawText.match(/download[\s\S]*?([\d]+(?:\.[\d]+)?)\s*(?:mbps|Mbps)/i);
+                    const ulMatch = rawText.match(/upload[\s\S]*?([\d]+(?:\.[\d]+)?)\s*(?:mbps|Mbps)/i);
+
+                    if (dlMatch) {
+                        const v = parseFloat(dlMatch[1]);
+                        if (!isNaN(v)) { extracted.dl_mb = v; }
                     }
-                } catch (e) { console.warn('[OCR Speedtest] DL crop failed:', e); }
-
-                try {
-                    // Crop STRICTLY inside Upload rounded box — the big number + Mbps
-                    const ulCrop = await this.cropRegionOfImage(file, 0.54, 0.17, 0.40, 0.14);
-                    const ulResult = await Tesseract.recognize(ulCrop, 'eng');
-                    const ulText = (ulResult && ulResult.data && ulResult.data.text) ? ulResult.data.text.replace(/\s+/g, ' ').trim() : '';
-                    console.log('[OCR Speedtest] Upload box crop text:', JSON.stringify(ulText));
-
-                    const ulNums = ulText.match(/(\d{1,4}(?:\.\d{1,2})?)/g);
-                    if (ulNums) {
-                        for (const ns of ulNums) {
-                            const v = parseFloat(ns);
-                            if (!isNaN(v) && v >= 0.1 && v < 10000) { ulVal = v; break; }
-                        }
+                    if (ulMatch) {
+                        const v = parseFloat(ulMatch[1]);
+                        if (!isNaN(v)) { extracted.ul_mb = v; }
                     }
-                } catch (e) { console.warn('[OCR Speedtest] UL crop failed:', e); }
 
-                console.log(`[OCR Speedtest] Crop result: DL=${dlVal}, UL=${ulVal}`);
-
-                // Regex fallback on full text: "Download 10.6 Mbps" / "Upload 20.5 Mbps"
-                if (dlVal === null || ulVal === null) {
-                    try {
-                        const resultFull = await Tesseract.recognize(file, 'eng');
-                        const rawText = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
-                        console.log('[OCR Speedtest] Full text fallback:', JSON.stringify(rawText.substring(0, 300)));
-
-                        // Hard stop everything from "Ping" line downwards
-                        const pingCutIdx = rawText.search(/ping/i);
-                        const safeText = pingCutIdx > 0 ? rawText.substring(0, pingCutIdx) : rawText;
-                        
-                        if (dlVal === null) {
-                            const dlMatch = safeText.match(/download[^0-9]*([0-9]+(?:\.[0-9]+)?)/i);
-                            if (dlMatch) dlVal = parseFloat(dlMatch[1]);
-                        }
-                        if (ulVal === null) {
-                            const ulMatch = safeText.match(/upload[^0-9]*([0-9]+(?:\.[0-9]+)?)/i);
-                            if (ulMatch) ulVal = parseFloat(ulMatch[1]);
-                        }
-                    } catch (e) { console.warn('[OCR Speedtest] Full-text fallback failed:', e); }
+                    console.log(`[OCR Speedtest] DL=${extracted.dl_mb}, UL=${extracted.ul_mb}`);
+                } catch (e) {
+                    console.warn('[OCR Speedtest] Failed:', e);
                 }
 
-                if (dlVal !== null) extracted.dl_mb = dlVal;
-                if (ulVal !== null) extracted.ul_mb = ulVal;
-                
                 return extracted;
             }
 
