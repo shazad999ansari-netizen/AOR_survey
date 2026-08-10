@@ -1100,8 +1100,8 @@ class FieldPortalApp {
                 }
             }
 
-            // 3. Process ALL 5G Screenshots (Telemetry & Speedtest dropzones)
-            for (let f of files5g) {
+            // 3. Process ALL 5G Telemetry Screenshots → TELEMETRY OCR ONLY
+            for (let f of files5gTel) {
                 const telOcr = await this.performRealImageOCR(f, 'telemetry');
                 if (Object.keys(telOcr).length > 0) {
                     this.applyMetricsToUI(hsId, {
@@ -1110,14 +1110,18 @@ class FieldPortalApp {
                         rsrp_5g: telOcr.rsrp, rsrq_5g: telOcr.rsrq, sinr_5g: telOcr.sinr
                     });
                 }
+            }
+
+            // 3b. Process ALL 5G Speedtest Screenshots → SPEEDTEST OCR ONLY
+            for (let f of files5gSpd) {
                 const spdOcr = await this.performRealImageOCR(f, 'speedtest');
                 if (spdOcr.dl_mb !== undefined || spdOcr.ul_mb !== undefined) {
                     this.applyMetricsToUI(hsId, { dl_mb_5g: spdOcr.dl_mb, ul_mb_5g: spdOcr.ul_mb });
                 }
             }
 
-            // 4. Process ALL 4G Screenshots (Telemetry & Speedtest dropzones)
-            for (let f of files4g) {
+            // 4. Process ALL 4G Telemetry Screenshots → TELEMETRY OCR ONLY
+            for (let f of files4gTel) {
                 const telOcr = await this.performRealImageOCR(f, 'telemetry');
                 if (Object.keys(telOcr).length > 0) {
                     this.applyMetricsToUI(hsId, {
@@ -1126,6 +1130,10 @@ class FieldPortalApp {
                         rsrp_4g: telOcr.rsrp, rsrq_4g: telOcr.rsrq, sinr_4g: telOcr.sinr
                     });
                 }
+            }
+
+            // 4b. Process ALL 4G Speedtest Screenshots → SPEEDTEST OCR ONLY
+            for (let f of files4gSpd) {
                 const spdOcr = await this.performRealImageOCR(f, 'speedtest');
                 if (spdOcr.dl_mb !== undefined || spdOcr.ul_mb !== undefined) {
                     this.applyMetricsToUI(hsId, { dl_mb_4g: spdOcr.dl_mb, ul_mb_4g: spdOcr.ul_mb });
