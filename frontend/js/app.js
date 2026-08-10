@@ -918,9 +918,17 @@ class FieldPortalApp {
                         try {
                             const blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, inv);
                             const res = await Tesseract.recognize(blob, 'eng');
-                            const txt = res?.data?.text || '';
+                            let txt = res?.data?.text || '';
+                            txt = txt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
                             const nums = [...txt.matchAll(/(\d+(?:\.\d+)?)/g)]
-                                .map(m => parseFloat(m[1]))
+                                .map(m => {
+                                    let v = parseFloat(m[1]);
+                                    // If integer > 100 and < 1000 (e.g. 217 misread for 21.7), auto-insert decimal
+                                    if (v > 100 && v < 1000 && Number.isInteger(v)) {
+                                        v = parseFloat((v / 10.0).toFixed(2));
+                                    }
+                                    return v;
+                                })
                                 .filter(v => v >= 0.1 && v < 5000);
                             return nums.length > 0 ? nums[0] : null;
                         } catch (e) { return null; }
