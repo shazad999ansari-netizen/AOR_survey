@@ -989,9 +989,7 @@ class FieldPortalApp {
                     if (dl !== null) extracted.dl_mb = dl;
                     if (ul !== null) extracted.ul_mb = ul;
 
-                    const dbg = `v45 | DL=${dl ?? 'null'} | UL=${ul ?? 'null'}`;
-                    console.log('[OCR Speedtest]', dbg);
-                    if (typeof app !== 'undefined' && app.showToast) app.showToast(dbg, 'info', 8000);
+                    console.log(`[OCR Speedtest] Extracted DL=${dl}, UL=${ul}`);
 
                 } catch (e) { console.warn('[OCR Speedtest] Failed:', e); }
                 return extracted;
