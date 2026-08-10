@@ -884,7 +884,7 @@ class FieldPortalApp {
                         const ctx = canvas.getContext('2d');
 
                         if (invertColors) {
-                            ctx.filter = 'invert(100%) grayscale(100%) contrast(200%)';
+                            ctx.filter = 'invert(100%) grayscale(100%)';
                         }
                         ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, canvas.width, canvas.height);
                         canvas.toBlob((blob) => {
@@ -919,7 +919,9 @@ class FieldPortalApp {
                             const blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, inv);
                             const res = await Tesseract.recognize(blob, 'eng');
                             const txt = res?.data?.text || '';
-                            const nums = [...txt.matchAll(/(\d+(?:\.\d+)?)/g)]
+                            // Normalize decimal separators (e.g. 27.0, 27,0, 27 0 -> 27.0)
+                            const cleaned = txt.replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
+                            const nums = [...cleaned.matchAll(/(\d+(?:\.\d+)?)/g)]
                                 .map(m => parseFloat(m[1]))
                                 .filter(v => v >= 0.1 && v < 5000);
                             return nums.length > 0 ? nums[0] : null;
