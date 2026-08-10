@@ -942,8 +942,8 @@ class FieldPortalApp {
                                 tessedit_pageseg_mode: '7'
                             };
 
-                            // Try 1: Crisp Binarized Black-on-White crop with 20px padding & 3x scale
-                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
+                            // Try 1: Native 3x Upscaled crop with 20px padding (preserves full digit 7 top bar & decimal dot)
+                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false);
                             let res = await Tesseract.recognize(blob, 'eng', ocrOpts);
                             let rawTxt = res?.data?.text || '';
                             let cleaned = rawTxt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
@@ -952,8 +952,8 @@ class FieldPortalApp {
                                 .filter(v => v >= 0.1 && v < 5000);
                             if (nums.length > 0) return nums[0];
 
-                            // Try 2: Standard 3x crop fallback
-                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false);
+                            // Try 2: Crisp Binarized Black-on-White crop fallback
+                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
                             res = await Tesseract.recognize(blob, 'eng', ocrOpts);
                             rawTxt = res?.data?.text || '';
                             cleaned = rawTxt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
