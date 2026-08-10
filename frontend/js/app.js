@@ -866,6 +866,178 @@ class FieldPortalApp {
         this.updateSurveyProgress();
     }
 
+// ===== SPEEDTEST TEMPLATE OCR ENGINE =====
+class SpeedtestTemplateOCR {
+    constructor() {
+        this.templateWidth = 24;
+        this.templateHeight = 36;
+        this.templates = {};
+        this.initTemplates();
+    }
+
+    initTemplates() {
+        const chars = ['0','1','2','3','4','5','6','7','8','9','.'];
+        const fonts = ['bold 26px sans-serif', 'bold 26px Arial', 'bold 26px Roboto', '700 26px Inter', '700 26px Rubik'];
+
+        chars.forEach(char => {
+            this.templates[char] = [];
+            fonts.forEach(font => {
+                const canvas = document.createElement('canvas');
+                canvas.width = this.templateWidth;
+                canvas.height = this.templateHeight;
+                const ctx = canvas.getContext('2d');
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = '#000000';
+                ctx.font = font;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                const yOffset = char === '.' ? 10 : 0;
+                ctx.fillText(char, this.templateWidth / 2, (this.templateHeight / 2) + yOffset);
+
+                const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const binary = new Uint8Array(this.templateWidth * this.templateHeight);
+                for (let i = 0; i < binary.length; i++) {
+                    const r = imgData.data[i * 4];
+                    binary[i] = r < 128 ? 1 : 0;
+                }
+                this.templates[char].push(binary);
+            });
+        });
+    }
+
+    segmentAndRecognize(canvas) {
+        try {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            const imgData = ctx.getImageData(0, 0, w, h);
+            const d = imgData.data;
+
+            // 1. Vertical Projection Profile (Count black pixels per column)
+            const colCounts = new Int32Array(w);
+            for (let x = 0; x < w; x++) {
+                let cnt = 0;
+                for (let y = 0; y < h; y++) {
+                    const idx = (y * w + x) * 4;
+                    if (d[idx] < 128) cnt++;
+                }
+                colCounts[x] = cnt;
+            }
+
+            // 2. Character Segmentation (Find continuous spans of black pixel columns)
+            const segments = [];
+            let inSegment = false;
+            let startX = 0;
+
+            for (let x = 0; x < w; x++) {
+                if (colCounts[x] >= 2) {
+                    if (!inSegment) { inSegment = true; startX = x; }
+                } else {
+                    if (inSegment) {
+                        inSegment = false;
+                        if (x - startX >= 3) {
+                            segments.push({ x1: startX, x2: x - 1 });
+                        }
+                    }
+                }
+            }
+            if (inSegment && w - startX >= 3) {
+                segments.push({ x1: startX, x2: w - 1 });
+            }
+
+            if (segments.length === 0) return null;
+
+            // 3. Normalized Match per segmented character
+            let resultStr = '';
+            let totalConf = 0;
+            let lowConfCount = 0;
+
+            for (let seg of segments) {
+                let minY = h, maxY = 0;
+                for (let x = seg.x1; x <= seg.x2; x++) {
+                    for (let y = 0; y < h; y++) {
+                        const idx = (y * w + x) * 4;
+                        if (d[idx] < 128) {
+                            if (y < minY) minY = y;
+                            if (y > maxY) maxY = y;
+                        }
+                    }
+                }
+                if (minY > maxY) continue;
+
+                const segW = seg.x2 - seg.x1 + 1;
+                const segH = maxY - minY + 1;
+
+                const segCanvas = document.createElement('canvas');
+                segCanvas.width = this.templateWidth;
+                segCanvas.height = this.templateHeight;
+                const segCtx = segCanvas.getContext('2d');
+
+                segCtx.fillStyle = '#ffffff';
+                segCtx.fillRect(0, 0, this.templateWidth, this.templateHeight);
+                segCtx.drawImage(canvas, seg.x1, minY, segW, segH, 2, 2, this.templateWidth - 4, this.templateHeight - 4);
+
+                const segImgData = segCtx.getImageData(0, 0, this.templateWidth, this.templateHeight);
+                const segBinary = new Uint8Array(this.templateWidth * this.templateHeight);
+                for (let i = 0; i < segBinary.length; i++) {
+                    segBinary[i] = segImgData.data[i * 4] < 128 ? 1 : 0;
+                }
+
+                let bestChar = '?';
+                let maxScore = -1;
+
+                for (let char in this.templates) {
+                    for (let tBinary of this.templates[char]) {
+                        let match = 0;
+                        for (let i = 0; i < segBinary.length; i++) {
+                            if (segBinary[i] === tBinary[i]) match++;
+                        }
+                        const score = match / segBinary.length;
+                        if (score > maxScore) {
+                            maxScore = score;
+                            bestChar = char;
+                        }
+                    }
+                }
+
+                if (maxScore < 0.78) lowConfCount++;
+                totalConf += maxScore;
+                resultStr += bestChar;
+            }
+
+            const avgConfidence = segments.length > 0 ? (totalConf / segments.length) : 0;
+            const parseSpeedNum = (txt) => {
+                if (!txt) return null;
+                let s = txt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
+                const matches = [...s.matchAll(/(\d+(?:\.\d+)?)/g)]
+                    .map(m => parseFloat(m[1]))
+                    .filter(v => v >= 0.1 && v < 5000);
+                return matches.length > 0 ? matches[0] : null;
+            };
+
+            const cleanedVal = parseSpeedNum(resultStr);
+
+            return {
+                rawString: resultStr,
+                numericValue: cleanedVal,
+                confidence: Math.round(avgConfidence * 100),
+                segmentsCount: segments.length,
+                lowConfCount: lowConfCount,
+                isValid: cleanedVal !== null && lowConfCount === 0 && avgConfidence >= 0.80
+            };
+        } catch (e) {
+            console.warn('[Template OCR Error]:', e);
+            return null;
+        }
+    }
+}
+
+const templateOCRInstance = new SpeedtestTemplateOCR();
+
     async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, applyOtsu = true) {
         return new Promise((resolve) => {
             try {
@@ -908,7 +1080,6 @@ class FieldPortalApp {
 
                             for (let i = 0; i < d.length; i += 4) {
                                 const lum = (d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
-                                // If pixel is lighter than background threshold -> Black text (0), else White bg (255)
                                 const val = lum > threshVal ? 0 : 255;
                                 d[i] = val;
                                 d[i+1] = val;
@@ -918,16 +1089,16 @@ class FieldPortalApp {
                         }
 
                         canvas.toBlob((blob) => {
-                            resolve(blob || file);
+                            resolve({ blob: blob || file, canvas: canvas });
                         }, 'image/jpeg');
                     } catch (e) {
-                        resolve(file);
+                        resolve({ blob: file, canvas: null });
                     }
                 };
-                img.onerror = () => resolve(file);
+                img.onerror = () => resolve({ blob: file, canvas: null });
                 img.src = URL.createObjectURL(file);
             } catch (e) {
-                resolve(file);
+                resolve({ blob: file, canvas: null });
             }
         });
     }
@@ -959,30 +1130,40 @@ class FieldPortalApp {
                                 tessedit_char_whitelist: '0123456789.',
                                 tessedit_pageseg_mode: '7'
                             };
-                            const candidates = [];
 
-                            // Pass 1: OpenCV Preprocessed (3x upscale + 25px white padding + Otsu Binarization)
-                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
-                            let res = await Tesseract.recognize(blob, 'eng', ocrOpts);
-                            let num = parseSpeedNum(res?.data?.text);
-                            if (num !== null) candidates.push(num);
+                            // 1. Get 3x Preprocessed Canvas + Blob
+                            const { blob, canvas } = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
 
-                            // Pass 2: Native Crop with 25px white padding (no binarization)
-                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false);
-                            res = await Tesseract.recognize(blob, 'eng', ocrOpts);
-                            num = parseSpeedNum(res?.data?.text);
-                            if (num !== null) candidates.push(num);
+                            // 2. Run Template Matching Engine
+                            let templateRes = null;
+                            if (canvas) {
+                                templateRes = templateOCRInstance.segmentAndRecognize(canvas);
+                            }
 
-                            if (candidates.length === 0) return null;
+                            // 3. Run Tesseract.js Engine
+                            let tessNum = null;
+                            if (blob) {
+                                let res = await Tesseract.recognize(blob, 'eng', ocrOpts);
+                                tessNum = parseSpeedNum(res?.data?.text);
+                            }
 
-                            // Candidate Selection: Prefer number with decimal point (e.g. 27.0 over 21), or with 7
-                            const withDecimal = candidates.find(c => String(c).includes('.'));
-                            if (withDecimal !== undefined) return withDecimal;
+                            // 4. Side-by-side comparison debug log
+                            const tmVal = templateRes ? templateRes.numericValue : null;
+                            const tmConf = templateRes ? templateRes.confidence : 0;
+                            console.log(`[OCR COMPARE] Template Engine: ${tmVal} (${tmConf}% conf) | Tesseract.js: ${tessNum}`);
+                            if (typeof app !== 'undefined' && app.showToast) {
+                                app.showToast(`[OCR Compare] Template: ${tmVal ?? 'null'} (${tmConf}%) | Tesseract: ${tessNum ?? 'null'}`, 'info', 5000);
+                            }
 
-                            const withSeven = candidates.find(c => String(c).includes('7'));
-                            if (withSeven !== undefined) return withSeven;
+                            // 5. Decision Strategy: Template Engine first if confident (>=80%), Tesseract.js fallback
+                            if (templateRes && templateRes.isValid && tmVal !== null) {
+                                return tmVal;
+                            } else if (tessNum !== null) {
+                                console.log('[OCR Fallback] Triggered Tesseract.js safety net');
+                                return tessNum;
+                            }
 
-                            return candidates[0];
+                            return null;
                         } catch (e) { return null; }
                     };
 
