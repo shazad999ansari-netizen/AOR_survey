@@ -913,7 +913,15 @@ class FieldPortalApp {
                     const rawText = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
                     console.log('[OCR Speedtest] Raw full text:', JSON.stringify(rawText));
                     
-                    const cleanedText = rawText.replace(/[\r\n]+/g, ' ');
+                    // Normalize text: insert spaces to cleanly separate labels and numbers
+                    const cleanedText = rawText
+                        .replace(/download\s*[:\s]*([0-9.]+)/i, ' Download $1 ')
+                        .replace(/upload\s*[:\s]*([0-9.]+)/i, ' Upload $1 ')
+                        .replace(/([0-9.]+)\s*mbps/gi, ' $1 Mbps ')
+                        .replace(/ping\s*[:\s]*([0-9.]+)/i, ' Ping $1 ')
+                        .replace(/jitter\s*[:\s]*([0-9.]+)/i, ' Jitter $1 ')
+                        .replace(/[\r\n]+/g, ' ');
+
                     const tokens = cleanedText.split(/\s+/).filter(t => t.trim() !== '');
                     
                     let download = null;
@@ -937,6 +945,7 @@ class FieldPortalApp {
                     }
                     
                     if (dlIdx !== -1 && ulIdx !== -1) {
+                        // Discard all status bar numbers at the top by starting ONLY from download/upload labels
                         const startIdx = Math.min(dlIdx, ulIdx);
                         const numbers = [];
                         
@@ -950,6 +959,7 @@ class FieldPortalApp {
                             }
                         }
                         
+                        // If row-wise layout: labels are adjacent (e.g. "Download Upload 10.6 20.5")
                         if (Math.abs(dlIdx - ulIdx) <= 2 && numbers.length >= 2) {
                             if (dlIdx < ulIdx) {
                                 download = numbers[0].val;
@@ -959,7 +969,8 @@ class FieldPortalApp {
                                 download = numbers[1].val;
                             }
                         } else {
-                            const dlNum = numbers.find(n => n.index > dlIdx && (ulIdx === -1 || n.index < ulIdx));
+                            // Column-wise layout: "Download 10.6 Mbps ... Upload 20.5 Mbps"
+                            const dlNum = numbers.find(n => n.index > dlIdx && n.index < ulIdx);
                             if (dlNum) download = dlNum.val;
                             
                             const ulNum = numbers.find(n => n.index > ulIdx);
@@ -967,9 +978,11 @@ class FieldPortalApp {
                         }
                     }
                     
+                    // Fallback to searching first two numbers strictly between startIdx and pingIdx
                     if (download === null || upload === null) {
+                        const startIdx = dlIdx !== -1 ? dlIdx : (ulIdx !== -1 ? ulIdx : 0);
                         const allNums = tokens
-                            .slice(0, pingIdx)
+                            .slice(startIdx, pingIdx)
                             .map(t => {
                                 const m = t.match(/^(\d+(?:\.\d+)?)$/);
                                 return m ? parseFloat(m[1]) : null;
@@ -979,6 +992,8 @@ class FieldPortalApp {
                         if (allNums.length >= 2) {
                             if (download === null) download = allNums[0];
                             if (upload === null) upload = allNums[1];
+                        } else if (allNums.length === 1 && download === null) {
+                            download = allNums[0];
                         }
                     }
                     
