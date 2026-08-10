@@ -866,7 +866,7 @@ class FieldPortalApp {
         this.updateSurveyProgress();
     }
 
-    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, invertColors = false) {
+    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, invertColors = false, customFilter = '') {
         return new Promise((resolve) => {
             try {
                 const img = new Image();
@@ -885,7 +885,9 @@ class FieldPortalApp {
                         ctx.imageSmoothingEnabled = true;
                         ctx.imageSmoothingQuality = 'high';
 
-                        if (invertColors) {
+                        if (customFilter && customFilter !== 'none') {
+                            ctx.filter = customFilter;
+                        } else if (invertColors) {
                             ctx.filter = 'invert(100%) grayscale(100%)';
                         }
                         ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, canvas.width, canvas.height);
@@ -916,29 +918,47 @@ class FieldPortalApp {
                 try {
                     let dl = null, ul = null;
 
+                    const parseSpeedNum = (txt) => {
+                        if (!txt) return null;
+                        let s = txt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
+                        const matches = [...s.matchAll(/(\d+(?:\.\d+)?)/g)]
+                            .map(m => parseFloat(m[1]))
+                            .filter(v => v >= 0.1 && v < 5000);
+                        return matches.length > 0 ? matches[0] : null;
+                    };
+
                     const extractFromCrop = async (xR, yR, wR, hR) => {
                         try {
-                            // Try 1: 3x Non-inverted crop (crisp native white text on dark background)
-                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false);
+                            const candidates = [];
+
+                            // Pass 1: Brightness Boosted 3x crop (boosts thin top bars of 7/3/5 so they aren't read as 1)
+                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false, 'brightness(160%) contrast(130%)');
                             let res = await Tesseract.recognize(blob, 'eng');
-                            let txt = res?.data?.text || '';
-                            let cleaned = txt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
-                            let nums = [...cleaned.matchAll(/(\d+(?:\.\d+)?)/g)]
-                                .map(m => parseFloat(m[1]))
-                                .filter(v => v >= 0.1 && v < 5000);
-                            if (nums.length > 0) return nums[0];
+                            let num = parseSpeedNum(res?.data?.text);
+                            if (num !== null) candidates.push(num);
 
-                            // Try 2: 3x Inverted crop
-                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
+                            // Pass 2: Native 3x crop
+                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false, 'none');
                             res = await Tesseract.recognize(blob, 'eng');
-                            txt = res?.data?.text || '';
-                            cleaned = txt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
-                            nums = [...cleaned.matchAll(/(\d+(?:\.\d+)?)/g)]
-                                .map(m => parseFloat(m[1]))
-                                .filter(v => v >= 0.1 && v < 5000);
-                            if (nums.length > 0) return nums[0];
+                            num = parseSpeedNum(res?.data?.text);
+                            if (num !== null) candidates.push(num);
 
-                            return null;
+                            // Pass 3: Inverted 3x crop
+                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true, 'invert(100%) grayscale(100%)');
+                            res = await Tesseract.recognize(blob, 'eng');
+                            num = parseSpeedNum(res?.data?.text);
+                            if (num !== null) candidates.push(num);
+
+                            if (candidates.length === 0) return null;
+
+                            // Candidate Selection: Prefer number with decimal point (e.g. 27.0 over 21), or with 7
+                            const withDecimal = candidates.find(c => String(c).includes('.'));
+                            if (withDecimal !== undefined) return withDecimal;
+
+                            const withSeven = candidates.find(c => String(c).includes('7'));
+                            if (withSeven !== undefined) return withSeven;
+
+                            return candidates[0];
                         } catch (e) { return null; }
                     };
 
