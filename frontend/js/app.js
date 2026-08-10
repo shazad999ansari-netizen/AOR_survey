@@ -1061,56 +1061,6 @@ class FieldPortalApp {
 
 
 
-    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, applyOtsu = true) {
-        return new Promise((resolve) => {
-            try {
-                const img = new Image();
-                img.onload = () => {
-                    try {
-                        const canvas = document.createElement('canvas');
-                        const startX = Math.floor(img.width * xRatio);
-                        const startY = Math.floor(img.height * yRatio);
-                        const cropW = Math.floor(img.width * wRatio);
-                        const cropH = Math.floor(img.height * hRatio);
-
-                        const scale = 3.0;
-                        const targetW = Math.floor(cropW * scale);
-                        const targetH = Math.floor(cropH * scale);
-                        const padding = 25; // 25px white padding around crop so text NEVER touches image boundary!
-
-                        canvas.width = Math.max(targetW + padding * 2, 50);
-                        canvas.height = Math.max(targetH + padding * 2, 50);
-
-                        const ctx = canvas.getContext('2d');
-                        ctx.fillStyle = '#ffffff';
-                        ctx.fillRect(0, 0, canvas.width, canvas.height); // Fill background white
-
-                        ctx.imageSmoothingEnabled = true;
-                        ctx.imageSmoothingQuality = 'high';
-                        ctx.drawImage(img, startX, startY, cropW, cropH, padding, padding, targetW, targetH);
-
-                        if (applyOtsu) {
-                            // Otsu-style Binarization: Light text on dark bg -> Black text on White bg
-                            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                            const d = imgData.data;
-
-                            let sum = 0;
-                            for (let i = 0; i < d.length; i += 4) {
-                                sum += (d[i] + d[i+1] + d[i+2]) / 3;
-                            }
-                            const avgL = sum / (d.length / 4);
-                            const threshVal = Math.min(Math.max(avgL, 80), 170);
-
-                            for (let i = 0; i < d.length; i += 4) {
-                                const lum = (d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
-                                const val = lum > threshVal ? 0 : 255;
-                                d[i] = val;
-                                d[i+1] = val;
-                                d[i+2] = val;
-                            }
-                            ctx.putImageData(imgData, 0, 0);
-                        }
-
     async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, invertColors = false) {
         return new Promise((resolve) => {
             try {
