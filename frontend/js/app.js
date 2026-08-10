@@ -929,23 +929,24 @@ class FieldPortalApp {
 
                     const extractFromCrop = async (xR, yR, wR, hR) => {
                         try {
+                            const ocrOpts = { tessedit_char_whitelist: '0123456789.' };
                             const candidates = [];
 
-                            // Pass 1: Brightness Boosted 3x crop (boosts thin top bars of 7/3/5 so they aren't read as 1)
+                            // Pass 1: Brightness Boosted 3x crop + Digits Whitelist (Forces Tesseract to match 7 strictly as digit)
                             let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false, 'brightness(160%) contrast(130%)');
-                            let res = await Tesseract.recognize(blob, 'eng');
+                            let res = await Tesseract.recognize(blob, 'eng', ocrOpts);
                             let num = parseSpeedNum(res?.data?.text);
                             if (num !== null) candidates.push(num);
 
-                            // Pass 2: Native 3x crop
+                            // Pass 2: Native 3x crop + Digits Whitelist
                             blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false, 'none');
-                            res = await Tesseract.recognize(blob, 'eng');
+                            res = await Tesseract.recognize(blob, 'eng', ocrOpts);
                             num = parseSpeedNum(res?.data?.text);
                             if (num !== null) candidates.push(num);
 
-                            // Pass 3: Inverted 3x crop
+                            // Pass 3: Inverted 3x crop + Digits Whitelist
                             blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true, 'invert(100%) grayscale(100%)');
-                            res = await Tesseract.recognize(blob, 'eng');
+                            res = await Tesseract.recognize(blob, 'eng', ocrOpts);
                             num = parseSpeedNum(res?.data?.text);
                             if (num !== null) candidates.push(num);
 
