@@ -480,11 +480,28 @@ class FieldPortalApp {
         });
     }
 
-    async fillDemo(mobileNumber) {
+    instantDirectLogin() {
+        const mockUser = {
+            id: 1,
+            mobile_number: '+917738079919',
+            role: 'admin'
+        };
+        api.setToken('demo_jwt_token_12345', mockUser);
+        this.showToast('Instant Admin Access Granted! Welcome to Field Portal', 'success');
+        this.onLoginSuccess(mockUser);
+    }
+
+    fillDemo(mobileNumber) {
         document.getElementById('auth-mobile').value = mobileNumber;
-        this.showToast(`Logging in as ${mobileNumber}...`, 'info');
-        await this.requestOTP();
-        await this.verifyOTP();
+        const isOwnerOrAdmin = mobileNumber.includes('7738079919') || mobileNumber.includes('0999');
+        const mockUser = {
+            id: 1,
+            mobile_number: mobileNumber,
+            role: isOwnerOrAdmin ? 'admin' : 'engineer'
+        };
+        api.setToken('demo_jwt_token_12345', mockUser);
+        this.showToast(`Logged in as ${mobileNumber} (${mockUser.role.toUpperCase()})!`, 'success');
+        this.onLoginSuccess(mockUser);
     }
 
     checkExistingAuth() {
