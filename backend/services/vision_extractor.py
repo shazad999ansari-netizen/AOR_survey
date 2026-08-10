@@ -82,20 +82,21 @@ For 4G screenshots:
 - "ping_ms_4g": float (e.g. 28.0)
 - "jitter_ms_4g": float (e.g. 4.1)
 
-STRICT SPATIAL ANCHORING RULES FOR SPEEDTEST SCREENSHOTS:
+STRICT SPATIAL ANCHORING & BOUNDARY RULES FOR SPEEDTEST SCREENSHOTS:
 1. DOWNLOAD SPEED (dl_mb_5g or dl_mb_4g):
-   - Locate the box/section labeled "Download" or "DOWNLOAD" (inside top-left box).
-   - Extract ONLY the large numerical value directly inside the "Download" box (e.g., 359 or 12.0).
-   - DO NOT extract Ping ms values (e.g., 23 ms or 31 ms) or Jitter values located below the boxes.
+   - Download Speed MUST be extracted strictly from inside the top-left container labeled 'Download'.
+   - Extract ONLY the large numerical value directly inside the 'Download' container boundaries.
+   - Do NOT match any numbers outside the 'Download' box boundaries (e.g., Ping metrics, Jitter, loss %, or status bar numbers).
 
 2. UPLOAD SPEED (ul_mb_5g or ul_mb_4g):
-   - Locate the box/section labeled "Upload" or "UPLOAD" (inside top-right box).
-   - Extract ONLY the large numerical value directly inside the "Upload" box (e.g., 55.9 or 15.0).
-   - DO NOT extract Ping ms values or Jitter values located below the boxes.
+   - Upload Speed MUST be extracted strictly from inside the top-right container labeled 'Upload'.
+   - Extract ONLY the large numerical value directly inside the 'Upload' container boundaries.
+   - Do NOT match any numbers outside the 'Upload' box boundaries (e.g., Ping metrics, Jitter, loss %, or status bar numbers).
 
-3. CRITICAL IGNORE RULES (NOISE REDUCTION):
+3. MANDATORY CROSS-CHECKING & NOISE REDUCTION:
+   - Cross-check extracted download and upload speeds with the source screenshot before producing the final JSON.
    - CRITICAL: Ping values (e.g., "Ping ms 23", "Ping ms 31") and Jitter values (e.g., "Jitter ms 6") appear BELOW the Download/Upload containers. NEVER use Ping or Jitter numbers as Download or Upload speeds!
-   - IGNORE ALL promotional banners, advertisements, flight deals, currency symbols (₹, $), shopping discounts, or random numbers (e.g., 10,000, 899.00, 15 GMS) appearing in the middle or bottom of the screenshot.
+   - IGNORE ALL promotional banners, advertisements, flight deals, currency symbols (₹, $), shopping discounts, or random numbers appearing in the screenshot.
    - IGNORE status bar items at the very top (time, network speeds like KB/s, battery percentage).
    - Do NOT round off decimal numbers.
 
