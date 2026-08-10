@@ -922,59 +922,73 @@ class FieldPortalApp {
                         .replace(/jitter\s*[:\s]*([0-9.]+)/i, ' Jitter $1 ')
                         .replace(/[\r\n]+/g, ' ');
 
-                    const tokens = cleanedText.split(/\s+/).filter(t => t.trim() !== '');
-                    
                     let download = null;
                     let upload = null;
-                    
-                    let dlIdx = -1;
-                    let ulIdx = -1;
-                    let pingIdx = tokens.length;
-                    
-                    for (let i = 0; i < tokens.length; i++) {
-                        const tokenLower = tokens[i].toLowerCase();
-                        if (tokenLower.includes('download') && dlIdx === -1) {
-                            dlIdx = i;
-                        }
-                        if (tokenLower.includes('upload') && ulIdx === -1) {
-                            ulIdx = i;
-                        }
-                        if ((tokenLower === 'ping' || tokenLower === 'jitter' || tokenLower === 'test' || tokenLower.includes('result') || tokenLower === 'feedback') && i < pingIdx) {
-                            pingIdx = i;
+
+                    // 1. Prioritize direct Column-wise Layout matching: "Download 10.6 Mbps"
+                    const colDl = cleanedText.match(/download\s+([0-9.]+)\s*mbps/i);
+                    const colUl = cleanedText.match(/upload\s+([0-9.]+)\s*mbps/i);
+                    if (colDl) download = parseFloat(colDl[1]);
+                    if (colUl) upload = parseFloat(colUl[1]);
+
+                    // 2. Prioritize direct Row-wise Layout matching: "Download Upload 10.6 20.5 Mbps Mbps"
+                    if (download === null || upload === null) {
+                        const rowLayout = cleanedText.match(/download\s+upload\s+([0-9.]+)\s+([0-9.]+)\s*mbps/i);
+                        if (rowLayout) {
+                            download = parseFloat(rowLayout[1]);
+                            upload = parseFloat(rowLayout[2]);
                         }
                     }
-                    
-                    if (dlIdx !== -1 && ulIdx !== -1) {
-                        // Discard all status bar numbers at the top by starting ONLY from download/upload labels
-                        const startIdx = Math.min(dlIdx, ulIdx);
-                        const numbers = [];
+
+                    // 3. Fallback: Token-based relative index matching
+                    if (download === null || upload === null) {
+                        const tokens = cleanedText.split(/\s+/).filter(t => t.trim() !== '');
+                        let dlIdx = -1;
+                        let ulIdx = -1;
+                        let pingIdx = tokens.length;
                         
-                        for (let i = startIdx; i < pingIdx; i++) {
-                            const match = tokens[i].match(/^(\d+(?:\.\d+)?)$/);
-                            if (match) {
-                                const val = parseFloat(match[1]);
-                                if (!isNaN(val) && val > 0 && val < 10000) {
-                                    numbers.push({ index: i, val: val });
-                                }
+                        for (let i = 0; i < tokens.length; i++) {
+                            const tokenLower = tokens[i].toLowerCase();
+                            if (tokenLower.includes('download') && dlIdx === -1) {
+                                dlIdx = i;
+                            }
+                            if (tokenLower.includes('upload') && ulIdx === -1) {
+                                ulIdx = i;
+                            }
+                            if ((tokenLower === 'ping' || tokenLower === 'jitter' || tokenLower === 'test' || tokenLower.includes('result') || tokenLower === 'feedback') && i < pingIdx) {
+                                pingIdx = i;
                             }
                         }
                         
-                        // If row-wise layout: labels are adjacent (e.g. "Download Upload 10.6 20.5")
-                        if (Math.abs(dlIdx - ulIdx) <= 2 && numbers.length >= 2) {
-                            if (dlIdx < ulIdx) {
-                                download = numbers[0].val;
-                                upload = numbers[1].val;
-                            } else {
-                                upload = numbers[0].val;
-                                download = numbers[1].val;
-                            }
-                        } else {
-                            // Column-wise layout: "Download 10.6 Mbps ... Upload 20.5 Mbps"
-                            const dlNum = numbers.find(n => n.index > dlIdx && n.index < ulIdx);
-                            if (dlNum) download = dlNum.val;
+                        if (dlIdx !== -1 && ulIdx !== -1) {
+                            const startIdx = Math.min(dlIdx, ulIdx);
+                            const numbers = [];
                             
-                            const ulNum = numbers.find(n => n.index > ulIdx);
-                            if (ulNum) upload = ulNum.val;
+                            for (let i = startIdx; i < pingIdx; i++) {
+                                const match = tokens[i].match(/^(\d+(?:\.\d+)?)$/);
+                                if (match) {
+                                    const val = parseFloat(match[1]);
+                                    if (!isNaN(val) && val > 0 && val < 10000) {
+                                        numbers.push({ index: i, val: val });
+                                    }
+                                }
+                            }
+                            
+                            if (Math.abs(dlIdx - ulIdx) <= 2 && numbers.length >= 2) {
+                                if (dlIdx < ulIdx) {
+                                    download = numbers[0].val;
+                                    upload = numbers[1].val;
+                                } else {
+                                    upload = numbers[0].val;
+                                    download = numbers[1].val;
+                                }
+                            } else {
+                                const dlNum = numbers.find(n => n.index > dlIdx && n.index < ulIdx);
+                                if (dlNum) download = dlNum.val;
+                                
+                                const ulNum = numbers.find(n => n.index > ulIdx);
+                                if (ulNum) upload = ulNum.val;
+                            }
                         }
                     }
                     
