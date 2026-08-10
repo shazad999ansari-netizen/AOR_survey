@@ -510,31 +510,6 @@ class FieldPortalApp {
         }
     }
 
-    captureStoreGPS() {
-        if (!navigator.geolocation) {
-            this.showToast('Geolocation is not supported by your browser.', 'error');
-            return;
-        }
-        this.showToast('Fetching GPS coordinates...', 'info');
-        navigator.geolocation.getCurrentPosition(
-            (pos) => {
-                this.latitude = pos.coords.latitude;
-                this.longitude = pos.coords.longitude;
-                const el = document.getElementById('display-gps-coords');
-                if (el) {
-                    el.innerText = `${this.latitude.toFixed(4)}° N, ${this.longitude.toFixed(4)}° E`;
-                    el.style.color = '#10b981';
-                }
-                this.showToast(`GPS Captured: ${this.latitude.toFixed(4)}, ${this.longitude.toFixed(4)}`, 'success');
-            },
-            (err) => {
-                console.warn('GPS Error:', err);
-                this.showToast(`GPS Error: ${err.message}`, 'error');
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-        );
-    }
-
     async saveStoreHardwareAudit() {
         const storeName = document.getElementById('store-name-input').value.trim();
         if (!storeName) {
@@ -550,9 +525,7 @@ class FieldPortalApp {
             sc_present: document.getElementById('toggle-sc-present').checked,
             sc_working: document.getElementById('toggle-sc-working').checked,
             sc_photo_url: this.sc_photo_url || null,
-            remarks: document.getElementById('store-remarks-input')?.value.trim() || null,
-            latitude: this.latitude || null,
-            longitude: this.longitude || null
+            remarks: document.getElementById('store-remarks-input')?.value.trim() || null
         };
 
         const btn = document.getElementById('btn-save-tab-1');
@@ -708,9 +681,6 @@ class FieldPortalApp {
         
         let summaryText = `⚡ *TELECOM STORE FIELD AUDIT REPORT*\n`;
         summaryText += `🏪 *Store:* ${storeName} (${srvId})\n`;
-        if (this.latitude && this.longitude) {
-            summaryText += `📍 *GPS:* ${this.latitude.toFixed(4)}° N, ${this.longitude.toFixed(4)}° E (https://maps.google.com/?q=${this.latitude},${this.longitude})\n`;
-        }
         const now = new Date();
         const dateTimeStr = now.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
         summaryText += `📅 *Date & Time:* ${dateTimeStr}\n`;
