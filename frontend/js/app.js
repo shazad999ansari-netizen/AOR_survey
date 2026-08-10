@@ -904,33 +904,65 @@ class FieldPortalApp {
 
             const extracted = {};
 
-            // ===== SPEEDTEST MODE: Simple Regex — number strictly between Download...Mbps and Upload...Mbps =====
+            // ===== SPEEDTEST MODE: Simple logic — cut at Ping, then find numbers after Download/Upload labels =====
             if (mode === 'speedtest') {
                 try {
                     const resultFull = await Tesseract.recognize(file, 'eng');
                     const rawText = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
-                    console.log('[OCR Speedtest] Raw text:', JSON.stringify(rawText.substring(0, 400)));
+                    console.log('[OCR Speedtest] FULL OCR text:', JSON.stringify(rawText));
 
-                    // Rule: number between "Download" ... "Mbps"
-                    // Rule: number between "Upload"   ... "Mbps"
-                    // Ignore EVERYTHING else — time, ping, jitter, status bar, etc.
-                    const dlMatch = rawText.match(/download[\s\S]*?([\d]+(?:\.[\d]+)?)\s*(?:mbps|Mbps)/i);
-                    const ulMatch = rawText.match(/upload[\s\S]*?([\d]+(?:\.[\d]+)?)\s*(?:mbps|Mbps)/i);
+                    // Step 1: Hard-cut everything from "Ping" onwards (removes 710, 353, Jitter, etc.)
+                    const pingCut = rawText.search(/\bping\b/i);
+                    const safeText = pingCut > 0 ? rawText.substring(0, pingCut) : rawText;
+                    console.log('[OCR Speedtest] Safe text (before Ping):', JSON.stringify(safeText));
 
-                    if (dlMatch) {
-                        const v = parseFloat(dlMatch[1]);
-                        if (!isNaN(v)) { extracted.dl_mb = v; }
+                    // Step 2: Find label positions
+                    const dlPos = safeText.search(/\bdownload\b/i);
+                    const ulPos = safeText.search(/\bupload\b/i);
+                    console.log(`[OCR Speedtest] dlPos=${dlPos}, ulPos=${ulPos}`);
+
+                    if (dlPos >= 0 && ulPos >= 0 && dlPos < ulPos) {
+                        // Check if any number exists BETWEEN Download and Upload labels
+                        // → Vertical layout: "Download\n10.6 Mbps\nUpload\n20.5 Mbps"
+                        const betweenText = safeText.substring(dlPos + 8, ulPos);
+                        const dlNums = [...betweenText.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
+
+                        if (dlNums.length > 0) {
+                            // Vertical layout: DL number sits between Download and Upload labels
+                            extracted.dl_mb = dlNums[0];
+                            // UL number sits after Upload label
+                            const afterUl = safeText.substring(ulPos + 6);
+                            const ulNums = [...afterUl.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
+                            if (ulNums.length > 0) extracted.ul_mb = ulNums[0];
+                        } else {
+                            // Column layout: "Download Upload\n10.6 20.5\nMbps Mbps"
+                            // Numbers appear AFTER both labels together
+                            const afterBothLabels = safeText.substring(ulPos + 6);
+                            const nums = [...afterBothLabels.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
+                            if (nums.length >= 1) extracted.dl_mb = nums[0]; // Download is left column → first number
+                            if (nums.length >= 2) extracted.ul_mb = nums[1]; // Upload is right column → second number
+                        }
+                    } else if (ulPos >= 0 && dlPos >= 0 && ulPos < dlPos) {
+                        // Upload label appears before Download (unlikely but handle it)
+                        const betweenText = safeText.substring(ulPos + 6, dlPos);
+                        const ulNums = [...betweenText.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
+                        if (ulNums.length > 0) {
+                            extracted.ul_mb = ulNums[0];
+                            const afterDl = safeText.substring(dlPos + 8);
+                            const dlNums = [...afterDl.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
+                            if (dlNums.length > 0) extracted.dl_mb = dlNums[0];
+                        } else {
+                            const afterBothLabels = safeText.substring(dlPos + 8);
+                            const nums = [...afterBothLabels.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
+                            if (nums.length >= 1) extracted.ul_mb = nums[0];
+                            if (nums.length >= 2) extracted.dl_mb = nums[1];
+                        }
                     }
-                    if (ulMatch) {
-                        const v = parseFloat(ulMatch[1]);
-                        if (!isNaN(v)) { extracted.ul_mb = v; }
-                    }
 
-                    console.log(`[OCR Speedtest] DL=${extracted.dl_mb}, UL=${extracted.ul_mb}`);
+                    console.log(`[OCR Speedtest] Final → DL=${extracted.dl_mb}, UL=${extracted.ul_mb}`);
                 } catch (e) {
                     console.warn('[OCR Speedtest] Failed:', e);
                 }
-
                 return extracted;
             }
 
