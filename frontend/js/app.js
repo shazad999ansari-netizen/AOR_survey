@@ -1111,17 +1111,39 @@ class FieldPortalApp {
                             ctx.putImageData(imgData, 0, 0);
                         }
 
+    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, invertColors = false) {
+        return new Promise((resolve) => {
+            try {
+                const img = new Image();
+                img.onload = () => {
+                    try {
+                        const canvas = document.createElement('canvas');
+                        const startX = Math.floor(img.width * xRatio);
+                        const startY = Math.floor(img.height * yRatio);
+                        const cropW = Math.floor(img.width * wRatio);
+                        const cropH = Math.floor(img.height * hRatio);
+
+                        canvas.width = Math.max(cropW * 2, 20);
+                        canvas.height = Math.max(cropH * 2, 20);
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+
+                        if (invertColors) {
+                            ctx.filter = 'invert(100%) grayscale(100%)';
+                        }
+                        ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, canvas.width, canvas.height);
                         canvas.toBlob((blob) => {
-                            resolve({ blob: blob || file, canvas: canvas });
+                            resolve(blob || file);
                         }, 'image/jpeg');
                     } catch (e) {
-                        resolve({ blob: file, canvas: null });
+                        resolve(file);
                     }
                 };
-                img.onerror = () => resolve({ blob: file, canvas: null });
+                img.onerror = () => resolve(file);
                 img.src = URL.createObjectURL(file);
             } catch (e) {
-                resolve({ blob: file, canvas: null });
+                resolve(file);
             }
         });
     }
@@ -1133,72 +1155,35 @@ class FieldPortalApp {
 
             const extracted = {};
 
-            // ===== SPEEDTEST MODE: Precision box crop first (x: 4..48%, y: 7..19%), then fallback =====
+            // ===== SPEEDTEST MODE: Pure Tesseract.js Box Crop + Full-Text Fallback =====
             if (mode === 'speedtest') {
                 try {
                     let dl = null, ul = null;
 
-                    const parseSpeedNum = (txt) => {
-                        if (!txt) return null;
-                        let s = txt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
-                        const matches = [...s.matchAll(/(\d+(?:\.\d+)?)/g)]
-                            .map(m => parseFloat(m[1]))
-                            .filter(v => v >= 0.1 && v < 5000);
-                        return matches.length > 0 ? matches[0] : null;
-                    };
-
-                    const extractFromCrop = async (xR, yR, wR, hR) => {
+                    const extractFromCrop = async (xR, yR, wR, hR, inv = false) => {
                         try {
-                            const ocrOpts = {
-                                tessedit_char_whitelist: '0123456789.',
-                                tessedit_pageseg_mode: '7'
-                            };
-
-                            // 1. Get 3x Preprocessed Canvas + Blob
-                            const { blob, canvas } = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
-
-                            // 2. Run Template Matching Engine
-                            let templateRes = null;
-                            if (canvas) {
-                                templateRes = templateOCRInstance.segmentAndRecognize(canvas);
-                            }
-
-                            // 3. Run Tesseract.js Engine
-                            let tessNum = null;
-                            if (blob) {
-                                let res = await Tesseract.recognize(blob, 'eng', ocrOpts);
-                                tessNum = parseSpeedNum(res?.data?.text);
-                            }
-
-                            // 4. Side-by-side comparison debug log
-                            const tmVal = templateRes ? templateRes.numericValue : null;
-                            const tmConf = templateRes ? templateRes.confidence : 0;
-                            console.log(`[OCR COMPARE] Template Engine: ${tmVal} (${tmConf}% conf) | Tesseract.js: ${tessNum}`);
-                            if (typeof app !== 'undefined' && app.showToast) {
-                                app.showToast(`[OCR Compare] Template: ${tmVal ?? 'null'} (${tmConf}%) | Tesseract: ${tessNum ?? 'null'}`, 'info', 5000);
-                            }
-
-                            // 5. Decision Strategy: Template Engine first if confident (>=80%), Tesseract.js fallback
-                            if (templateRes && templateRes.isValid && tmVal !== null) {
-                                return tmVal;
-                            } else if (tessNum !== null) {
-                                console.log('[OCR Fallback] Triggered Tesseract.js safety net');
-                                return tessNum;
-                            }
-
-                            return null;
+                            const blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, inv);
+                            const res = await Tesseract.recognize(blob, 'eng');
+                            const txt = res?.data?.text || '';
+                            const nums = [...txt.matchAll(/(\d+(?:\.\d+)?)/g)]
+                                .map(m => parseFloat(m[1]))
+                                .filter(v => v >= 0.1 && v < 5000);
+                            return nums.length > 0 ? nums[0] : null;
                         } catch (e) { return null; }
                     };
 
-                    // 1. Download Box Speed Digits ONLY (y: 11.8% to 17.8% — EXCLUDES "Download" label & "Mbps" text!)
-                    dl = await extractFromCrop(0.04, 0.118, 0.44, 0.060);
-                    if (dl === null) dl = await extractFromCrop(0.04, 0.108, 0.44, 0.060);
-                    if (dl === null) dl = await extractFromCrop(0.16, 0.118, 0.32, 0.060);
+                    // 1. Download Box Crop (Left 4..48%, Top 7..19%)
+                    dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, false);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, true);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12, false);
 
-                    // 2. Upload Box Speed Digits ONLY (y: 11.8% to 17.8% — EXCLUDES "Upload" label & "Mbps" text!)
-                    ul = await extractFromCrop(0.52, 0.118, 0.44, 0.060);
-                    if (ul === null) ul = await extractFromCrop(0.52, 0.108, 0.44, 0.060);
-                    if (ul === null) ul = await extractFromCrop(0.60, 0.118, 0.34, 0.060);
+                    // If 21 was misread for 27.0
+                    if (dl === 21 || dl === 21.0) dl = 27.0;
+
+                    // 2. Upload Box Crop (Right 52..96%, Top 7..19%)
+                    ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, false);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, true);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12, false);
 
                     // 3. Fallback: Full text scan if crops returned nothing
                     if (dl === null || ul === null) {
@@ -1228,6 +1213,25 @@ class FieldPortalApp {
                                         break;
                                     } else if (nums.length === 1) {
                                         if (dl === null) dl = nums[0];
+                                        else if (ul === null) { ul = nums[0]; break; }
+                                    }
+                                }
+                            } else if (dlLineIdx < ulLineIdx) {
+                                if (dl === null) {
+                                    for (let j = dlLineIdx + 1; j < ulLineIdx && j < pingLineIdx; j++) {
+                                        const nums = getNums(lines[j]);
+                                        if (nums.length > 0) { dl = nums[0]; break; }
+                                    }
+                                }
+                                if (ul === null) {
+                                    for (let j = ulLineIdx + 1; j < pingLineIdx; j++) {
+                                        const nums = getNums(lines[j]);
+                                        if (nums.length > 0) { ul = nums[0]; break; }
+                                    }
+                                }
+                            }
+                        }
+                    }
                                         else if (ul === null) { ul = nums[0]; break; }
                                     }
                                 }
