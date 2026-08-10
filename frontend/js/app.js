@@ -954,9 +954,33 @@ class FieldPortalApp {
                     if (dl !== null) extracted.dl_mb = dl;
                     if (ul !== null) extracted.ul_mb = ul;
 
-                    const dbg = `v43|dl=${dlLineIdx}[${lines[dlLineIdx]||''}]|ul=${ulLineIdx}[${lines[ulLineIdx]||''}]|ping=${pingLineIdx}|DL=${dl}|UL=${ul}`;
+                    // === CROP FALLBACK: If line-by-line missed numbers (stylized fonts in rounded boxes) ===
+                    if (dl === null || ul === null) {
+                        try {
+                            // Crop left 50% for Download speed (y: 10% to 37%)
+                            if (dl === null) {
+                                const dlBlob = await this.cropRegionOfImage(file, 0.02, 0.10, 0.48, 0.27);
+                                const dlRes = await Tesseract.recognize(dlBlob, 'eng');
+                                const dlText = dlRes?.data?.text || '';
+                                const dlNums = [...dlText.matchAll(/(\d+(?:\.\d+)?)/g)]
+                                    .map(m => parseFloat(m[1])).filter(v => v >= 0.5 && v <= 999);
+                                if (dlNums.length > 0) { dl = dlNums[0]; extracted.dl_mb = dl; }
+                            }
+                            // Crop right 50% for Upload speed (y: 10% to 37%)
+                            if (ul === null) {
+                                const ulBlob = await this.cropRegionOfImage(file, 0.50, 0.10, 0.48, 0.27);
+                                const ulRes = await Tesseract.recognize(ulBlob, 'eng');
+                                const ulText = ulRes?.data?.text || '';
+                                const ulNums = [...ulText.matchAll(/(\d+(?:\.\d+)?)/g)]
+                                    .map(m => parseFloat(m[1])).filter(v => v >= 0.5 && v <= 999);
+                                if (ulNums.length > 0) { ul = ulNums[0]; extracted.ul_mb = ul; }
+                            }
+                        } catch (ce) { console.warn('[OCR Crop Fallback]', ce); }
+                    }
+
+                    const dbg = `v44|dl=${dlLineIdx}|ul=${ulLineIdx}|ping=${pingLineIdx}|DL=${dl}|UL=${ul}`;
                     console.log('[OCR Speedtest]', dbg);
-                    if (typeof app !== 'undefined' && app.showToast) app.showToast(dbg.substring(0, 100), 'info', 8000);
+                    if (typeof app !== 'undefined' && app.showToast) app.showToast(dbg, 'info', 8000);
 
                 } catch (e) { console.warn('[OCR Speedtest] Failed:', e); }
                 return extracted;
