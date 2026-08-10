@@ -960,6 +960,9 @@ class FieldPortalApp {
                     }
 
                     console.log(`[OCR Speedtest] Final → DL=${extracted.dl_mb}, UL=${extracted.ul_mb}`);
+                    // Show on-screen for mobile debug (toast)
+                    const dbgMsg = `OCR v42: DL=${extracted.dl_mb ?? 'null'}, UL=${extracted.ul_mb ?? 'null'}`;
+                    if (typeof app !== 'undefined' && app.showToast) app.showToast(dbgMsg, 'info', 5000);
                 } catch (e) {
                     console.warn('[OCR Speedtest] Failed:', e);
                 }
