@@ -206,4 +206,5 @@ class APIClient {
     }
 }
 
-const api = new APIClient();
+window.api = new APIClient();
+var api = window.api;

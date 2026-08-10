@@ -354,8 +354,14 @@ class FieldPortalApp {
 
             const step1 = document.getElementById('otp-step-1');
             const step2 = document.getElementById('otp-step-2');
-            if (step1) step1.classList.add('view-hidden');
-            if (step2) step2.classList.remove('view-hidden');
+            if (step1) {
+                step1.classList.add('view-hidden');
+                step1.style.display = 'none';
+            }
+            if (step2) {
+                step2.classList.remove('view-hidden');
+                step2.style.display = 'block';
+            }
             
             const digits = ['1', '2', '3', '4', '5', '6'];
             digits.forEach((d, idx) => {
@@ -397,8 +403,14 @@ class FieldPortalApp {
         clearInterval(this.timerInterval);
         const step1 = document.getElementById('otp-step-1');
         const step2 = document.getElementById('otp-step-2');
-        if (step2) step2.classList.add('view-hidden');
-        if (step1) step1.classList.remove('view-hidden');
+        if (step2) {
+            step2.classList.add('view-hidden');
+            step2.style.display = 'none';
+        }
+        if (step1) {
+            step1.classList.remove('view-hidden');
+            step1.style.display = 'block';
+        }
     }
 
     // --- Step 2: Verify OTP ---
