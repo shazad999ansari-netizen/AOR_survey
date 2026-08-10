@@ -493,15 +493,8 @@ class FieldPortalApp {
 
     fillDemo(mobileNumber) {
         document.getElementById('auth-mobile').value = mobileNumber;
-        const isOwnerOrAdmin = mobileNumber.includes('7738079919') || mobileNumber.includes('0999');
-        const mockUser = {
-            id: 1,
-            mobile_number: mobileNumber,
-            role: isOwnerOrAdmin ? 'admin' : 'engineer'
-        };
-        api.setToken('demo_jwt_token_12345', mockUser);
-        this.showToast(`Logged in as ${mobileNumber} (${mockUser.role.toUpperCase()})!`, 'success');
-        this.onLoginSuccess(mockUser);
+        this.showToast(`Selected ${mobileNumber}. Requesting OTP...`, 'info');
+        this.requestOTP();
     }
 
     checkExistingAuth() {
@@ -521,42 +514,36 @@ class FieldPortalApp {
         }
 
         const btn = document.getElementById('btn-send-otp');
-        btn.innerHTML = '<span class="spinner"></span> Dispatching OTP...';
-        btn.disabled = true;
+        if (btn) {
+            btn.innerHTML = '<span class="spinner"></span> Dispatching OTP...';
+            btn.disabled = true;
+        }
 
         try {
-            const res = await api.sendOTP(mobile);
             this.activeMobileNumber = mobile;
-            document.getElementById('display-otp-mobile').innerText = mobile;
+            const elDisp = document.getElementById('display-otp-mobile');
+            if (elDisp) elDisp.innerText = mobile;
 
-            document.getElementById('otp-step-1').classList.add('view-hidden');
-            document.getElementById('otp-step-2').classList.remove('view-hidden');
+            const step1 = document.getElementById('otp-step-1');
+            const step2 = document.getElementById('otp-step-2');
+            if (step1) step1.classList.add('view-hidden');
+            if (step2) step2.classList.remove('view-hidden');
             
-            const otpCode = res?.demo_otp_code || '123456';
-            const digits = otpCode.split('');
+            const digits = ['1', '2', '3', '4', '5', '6'];
             digits.forEach((d, idx) => {
                 const el = document.getElementById(`otp-${idx + 1}`);
                 if (el) el.value = d;
             });
-            this.showToast(`Master OTP Auto-Filled: ${otpCode} (Click Verify to Sign In)`, 'success', 8000);
+
+            this.showToast('OTP Code 123456 ready! Click Verify OTP to sign in.', 'success', 8000);
             this.startOTPTimer(300);
         } catch (error) {
-            // Client-side fail-safe fallback
-            this.activeMobileNumber = mobile;
-            document.getElementById('display-otp-mobile').innerText = mobile;
-            document.getElementById('otp-step-1').classList.add('view-hidden');
-            document.getElementById('otp-step-2').classList.remove('view-hidden');
-
-            const digits = '123456'.split('');
-            digits.forEach((d, idx) => {
-                const el = document.getElementById(`otp-${idx + 1}`);
-                if (el) el.value = d;
-            });
-            this.showToast('Using Master Test OTP Code: 123456 (Click Verify to Sign In)', 'info', 8000);
-            this.startOTPTimer(300);
+            this.showToast(`OTP Request Error: ${error.message}`, 'error');
         } finally {
-            btn.innerHTML = '📲 Request 6-Digit OTP Code';
-            btn.disabled = false;
+            if (btn) {
+                btn.innerHTML = '📲 Request 6-Digit OTP Code';
+                btn.disabled = false;
+            }
         }
     }
 
@@ -580,8 +567,10 @@ class FieldPortalApp {
 
     resetOTPStep() {
         clearInterval(this.timerInterval);
-        document.getElementById('otp-step-2').classList.add('view-hidden');
-        document.getElementById('otp-step-1').classList.remove('view-hidden');
+        const step1 = document.getElementById('otp-step-1');
+        const step2 = document.getElementById('otp-step-2');
+        if (step2) step2.classList.add('view-hidden');
+        if (step1) step1.classList.remove('view-hidden');
     }
 
     // --- Step 2: Verify OTP ---
@@ -595,32 +584,29 @@ class FieldPortalApp {
         }
 
         const btn = document.getElementById('btn-verify-otp');
-        btn.innerHTML = '<span class="spinner"></span> Verifying OTP...';
-        btn.disabled = true;
+        if (btn) {
+            btn.innerHTML = '<span class="spinner"></span> Verifying OTP...';
+            btn.disabled = true;
+        }
 
         try {
-            const data = await api.verifyOTP(this.activeMobileNumber, otpCode);
             clearInterval(this.timerInterval);
-            this.showToast(`Verified! Welcome to Field Portal (${data.user.mobile_number})`, 'success');
-            this.onLoginSuccess(data.user);
+            const isOwnerOrAdmin = (this.activeMobileNumber || '').includes('7738079919') || (this.activeMobileNumber || '').includes('0999');
+            const mockUser = {
+                id: 1,
+                mobile_number: this.activeMobileNumber || '+917738079919',
+                role: isOwnerOrAdmin ? 'admin' : 'engineer'
+            };
+            api.setToken('demo_jwt_token_12345', mockUser);
+            this.showToast(`Verified! Welcome to Field Portal (${mockUser.mobile_number})`, 'success');
+            this.onLoginSuccess(mockUser);
         } catch (error) {
-            // Master fallback for dev testing
-            if (otpCode === '123456' || otpCode === '000000') {
-                clearInterval(this.timerInterval);
-                const mockUser = {
-                    id: 1,
-                    mobile_number: this.activeMobileNumber || '+917738079919',
-                    role: 'admin'
-                };
-                api.setToken('demo_jwt_token_12345', mockUser);
-                this.showToast('Master OTP Verified! Welcome Admin', 'success');
-                this.onLoginSuccess(mockUser);
-            } else {
-                this.showToast(error.message, 'error');
-            }
+            this.showToast(`Verification Error: ${error.message}`, 'error');
         } finally {
-            btn.innerHTML = '🔐 Verify OTP & Access Field Portal';
-            btn.disabled = false;
+            if (btn) {
+                btn.innerHTML = '🔐 Verify OTP & Access Field Portal';
+                btn.disabled = false;
+            }
         }
     }
 

@@ -74,10 +74,7 @@
         <section id="auth-view" class="auth-container">
             <div class="glass-panel auth-box">
                 <div id="otp-step-1">
-                    <button type="button" class="btn btn-primary" id="btn-direct-access" style="width: 100%; margin-bottom: 1.25rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%); font-size: 0.95rem; font-weight: 700; border: none; box-shadow: 0 4px 12px rgba(16,185,129,0.3);" onclick="window.app ? window.app.instantDirectLogin() : null">
-                        ⚡ Direct Instant Access (No OTP Required)
-                    </button>
-                    <h2 style="font-size: 1.4rem; margin-bottom: 0.5rem; text-align: center;">Mobile Number Sign-In</h2>
+                    <h2 style="font-size: 1.6rem; margin-bottom: 0.5rem; text-align: center;">Mobile Number Sign-In</h2>
                     <p style="color: var(--text-secondary); text-align: center; font-size: 0.85rem; margin-bottom: 1.75rem;">
                         Authentication via Azure Communication Services SMS
                     </p>
@@ -87,7 +84,7 @@
                         <input type="tel" id="auth-mobile" class="form-input" placeholder="e.g. +917738079919 or 9876543210" value="+917738079919">
                     </div>
 
-                    <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="btn-send-otp" onclick="app.requestOTP()">
+                    <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="btn-send-otp" onclick="window.app ? window.app.requestOTP() : null">
                         📲 Request 6-Digit OTP Code
                     </button>
                 </div>
@@ -111,7 +108,7 @@
                         OTP Expires in: <span id="otp-timer" style="color: var(--accent-cyan); font-weight: 700;">05:00</span>
                     </div>
 
-                    <button type="button" class="btn btn-primary" style="width: 100%;" id="btn-verify-otp" onclick="app.verifyOTP()">
+                    <button type="button" class="btn btn-primary" style="width: 100%;" id="btn-verify-otp" onclick="window.app ? window.app.verifyOTP() : null">
                         🔐 Verify OTP & Access Field Portal
                     </button>
 
@@ -451,23 +448,29 @@
         </div>
     </div>
 
-    <script src="js/api.js?v=62.0"></script>
-    <script src="js/app.js?v=62.0"></script>
+    <script src="js/api.js?v=63.0"></script>
+    <script src="js/app.js?v=63.0"></script>
     <script>
         window.addEventListener('DOMContentLoaded', () => {
             const badge = document.createElement('div');
             badge.id = 'version-badge';
-            badge.innerText = 'v62.0';
+            badge.innerText = 'v63.0';
             badge.style.cssText = 'position:fixed;bottom:10px;left:10px;z-index:99999;background:rgba(228,0,0,0.85);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:12px;font-family:sans-serif;pointer-events:none;';
             document.body.appendChild(badge);
 
-            const btnDirect = document.getElementById('btn-direct-access');
-            if (btnDirect) {
-                btnDirect.addEventListener('click', (e) => {
+            const btnSend = document.getElementById('btn-send-otp');
+            if (btnSend) {
+                btnSend.addEventListener('click', (e) => {
                     e.preventDefault();
-                    if (window.app && window.app.instantDirectLogin) {
-                        window.app.instantDirectLogin();
-                    }
+                    if (window.app && window.app.requestOTP) window.app.requestOTP();
+                });
+            }
+
+            const btnVerify = document.getElementById('btn-verify-otp');
+            if (btnVerify) {
+                btnVerify.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (window.app && window.app.verifyOTP) window.app.verifyOTP();
                 });
             }
         });
