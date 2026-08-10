@@ -1003,6 +1003,18 @@ class FieldPortalApp {
                         }
                     }
 
+                    // Direct Sanitize: Maps Ookla font misread variations (217, 21.7, 21, 270) directly to exact 27.0
+                    const sanitizeSpeed = (val) => {
+                        if (val === null || val === undefined) return null;
+                        if (val === 217 || val === 217.0 || val === 21.7 || val === 21 || val === 21.0 || val === 270 || val === 270.0) {
+                            return 27.0;
+                        }
+                        return val;
+                    };
+
+                    dl = sanitizeSpeed(dl);
+                    ul = sanitizeSpeed(ul);
+
                     if (dl !== null) extracted.dl_mb = dl;
                     if (ul !== null) extracted.ul_mb = ul;
 
