@@ -929,7 +929,10 @@ class FieldPortalApp {
 
                     const extractFromCrop = async (xR, yR, wR, hR) => {
                         try {
-                            const ocrOpts = { tessedit_char_whitelist: '0123456789.' };
+                            const ocrOpts = {
+                                tessedit_char_whitelist: '0123456789.',
+                                tessedit_pageseg_mode: '7'
+                            };
                             const candidates = [];
 
                             // Pass 1: Brightness Boosted 3x crop + Digits Whitelist (Forces Tesseract to match 7 strictly as digit)
