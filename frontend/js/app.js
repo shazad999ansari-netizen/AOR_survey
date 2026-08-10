@@ -922,7 +922,7 @@ class FieldPortalApp {
                             let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false);
                             let res = await Tesseract.recognize(blob, 'eng');
                             let txt = res?.data?.text || '';
-                            let cleaned = txt.replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
+                            let cleaned = txt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
                             let nums = [...cleaned.matchAll(/(\d+(?:\.\d+)?)/g)]
                                 .map(m => parseFloat(m[1]))
                                 .filter(v => v >= 0.1 && v < 5000);
@@ -932,7 +932,7 @@ class FieldPortalApp {
                             blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
                             res = await Tesseract.recognize(blob, 'eng');
                             txt = res?.data?.text || '';
-                            cleaned = txt.replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
+                            cleaned = txt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
                             nums = [...cleaned.matchAll(/(\d+(?:\.\d+)?)/g)]
                                 .map(m => parseFloat(m[1]))
                                 .filter(v => v >= 0.1 && v < 5000);
@@ -942,13 +942,15 @@ class FieldPortalApp {
                         } catch (e) { return null; }
                     };
 
-                    // 1. Download Box Crop (Left: 4%-48%, Top: 7%-19% - stops before Ping at 20%)
-                    dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12);
-                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12);
+                    // 1. Download Box Digit Crop (Precision: x: 16%-48% excludes icons/labels, Top: 7%-19%)
+                    dl = await extractFromCrop(0.16, 0.07, 0.32, 0.12);
+                    if (dl === null) dl = await extractFromCrop(0.16, 0.10, 0.32, 0.12);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12); // Wide fallback
 
-                    // 2. Upload Box Crop (Right: 52%-96%, Top: 7%-19% - stops before Ping at 20%)
-                    ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12);
-                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12);
+                    // 2. Upload Box Digit Crop (Precision: x: 60%-94% excludes icons/labels, Top: 7%-19%)
+                    ul = await extractFromCrop(0.60, 0.07, 0.34, 0.12);
+                    if (ul === null) ul = await extractFromCrop(0.60, 0.10, 0.34, 0.12);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12); // Wide fallback
 
                     // 3. Fallback: Full text scan if crops returned nothing
                     if (dl === null || ul === null) {
