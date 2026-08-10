@@ -904,68 +904,61 @@ class FieldPortalApp {
 
             const extracted = {};
 
-            // ===== SPEEDTEST MODE: Simple logic — cut at Ping, then find numbers after Download/Upload labels =====
+            // ===== SPEEDTEST MODE: Line-by-line parser =====
             if (mode === 'speedtest') {
                 try {
                     const resultFull = await Tesseract.recognize(file, 'eng');
                     const rawText = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
-                    console.log('[OCR Speedtest] FULL OCR text:', JSON.stringify(rawText));
 
-                    // Step 1: Hard-cut everything from "Ping" onwards (removes 710, 353, Jitter, etc.)
-                    const pingCut = rawText.search(/\bping\b/i);
-                    const safeText = pingCut > 0 ? rawText.substring(0, pingCut) : rawText;
-                    console.log('[OCR Speedtest] Safe text (before Ping):', JSON.stringify(safeText));
+                    // Split into cleaned non-empty lines
+                    const lines = rawText.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+                    let dlLineIdx = -1, ulLineIdx = -1, pingLineIdx = lines.length;
 
-                    // Step 2: Find label positions
-                    const dlPos = safeText.search(/\bdownload\b/i);
-                    const ulPos = safeText.search(/\bupload\b/i);
-                    console.log(`[OCR Speedtest] dlPos=${dlPos}, ulPos=${ulPos}`);
+                    for (let i = 0; i < lines.length; i++) {
+                        if (/download/i.test(lines[i]) && dlLineIdx === -1) dlLineIdx = i;
+                        if (/upload/i.test(lines[i]) && ulLineIdx === -1) ulLineIdx = i;
+                        if (/ping/i.test(lines[i])) { pingLineIdx = i; break; }
+                    }
 
-                    if (dlPos >= 0 && ulPos >= 0 && dlPos < ulPos) {
-                        // Check if any number exists BETWEEN Download and Upload labels
-                        // → Vertical layout: "Download\n10.6 Mbps\nUpload\n20.5 Mbps"
-                        const betweenText = safeText.substring(dlPos + 8, ulPos);
-                        const dlNums = [...betweenText.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
+                    const getNums = (line) =>
+                        [...line.matchAll(/(\d+(?:\.\d+)?)/g)]
+                            .map(m => parseFloat(m[1]))
+                            .filter(v => v > 0 && v < 10000);
 
-                        if (dlNums.length > 0) {
-                            // Vertical layout: DL number sits between Download and Upload labels
-                            extracted.dl_mb = dlNums[0];
-                            // UL number sits after Upload label
-                            const afterUl = safeText.substring(ulPos + 6);
-                            const ulNums = [...afterUl.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
-                            if (ulNums.length > 0) extracted.ul_mb = ulNums[0];
-                        } else {
-                            // Column layout: "Download Upload\n10.6 20.5\nMbps Mbps"
-                            // Numbers appear AFTER both labels together
-                            const afterBothLabels = safeText.substring(ulPos + 6);
-                            const nums = [...afterBothLabels.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
-                            if (nums.length >= 1) extracted.dl_mb = nums[0]; // Download is left column → first number
-                            if (nums.length >= 2) extracted.ul_mb = nums[1]; // Upload is right column → second number
-                        }
-                    } else if (ulPos >= 0 && dlPos >= 0 && ulPos < dlPos) {
-                        // Upload label appears before Download (unlikely but handle it)
-                        const betweenText = safeText.substring(ulPos + 6, dlPos);
-                        const ulNums = [...betweenText.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
-                        if (ulNums.length > 0) {
-                            extracted.ul_mb = ulNums[0];
-                            const afterDl = safeText.substring(dlPos + 8);
-                            const dlNums = [...afterDl.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
-                            if (dlNums.length > 0) extracted.dl_mb = dlNums[0];
-                        } else {
-                            const afterBothLabels = safeText.substring(dlPos + 8);
-                            const nums = [...afterBothLabels.matchAll(/(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1])).filter(v => v > 0 && v < 10000);
-                            if (nums.length >= 1) extracted.ul_mb = nums[0];
-                            if (nums.length >= 2) extracted.dl_mb = nums[1];
+                    let dl = null, ul = null;
+
+                    if (dlLineIdx >= 0 && ulLineIdx >= 0 && dlLineIdx < pingLineIdx && ulLineIdx < pingLineIdx) {
+                        if (dlLineIdx === ulLineIdx) {
+                            // COLUMN LAYOUT: both labels on same line, numbers on next line(s)
+                            for (let j = dlLineIdx + 1; j < pingLineIdx; j++) {
+                                const nums = getNums(lines[j]);
+                                if (nums.length >= 2) { dl = nums[0]; ul = nums[1]; break; }
+                                else if (nums.length === 1) {
+                                    if (dl === null) dl = nums[0];
+                                    else { ul = nums[0]; break; }
+                                }
+                            }
+                        } else if (dlLineIdx < ulLineIdx) {
+                            // VERTICAL LAYOUT: Download line then Upload line
+                            for (let j = dlLineIdx + 1; j < ulLineIdx && j < pingLineIdx; j++) {
+                                const nums = getNums(lines[j]);
+                                if (nums.length > 0) { dl = nums[0]; break; }
+                            }
+                            for (let j = ulLineIdx + 1; j < pingLineIdx; j++) {
+                                const nums = getNums(lines[j]);
+                                if (nums.length > 0) { ul = nums[0]; break; }
+                            }
                         }
                     }
 
-                    console.log(`[OCR Speedtest] Final → DL=${extracted.dl_mb}, UL=${extracted.ul_mb}`);
-                    // Show on-screen for mobile debug (toast)
-                    const dbgMsg = `OCR v42: DL=${extracted.dl_mb ?? 'null'}, UL=${extracted.ul_mb ?? 'null'}`;
-                    if (typeof app !== 'undefined' && app.showToast) app.showToast(dbgMsg, 'info', 5000);
-                } catch (e) {
-                    console.warn('[OCR Speedtest] Failed:', e);
-                }
+                    if (dl !== null) extracted.dl_mb = dl;
+                    if (ul !== null) extracted.ul_mb = ul;
+
+                    const dbg = `v43|dl=${dlLineIdx}[${lines[dlLineIdx]||''}]|ul=${ulLineIdx}[${lines[ulLineIdx]||''}]|ping=${pingLineIdx}|DL=${dl}|UL=${ul}`;
+                    console.log('[OCR Speedtest]', dbg);
+                    if (typeof app !== 'undefined' && app.showToast) app.showToast(dbg.substring(0, 100), 'info', 8000);
+
+                } catch (e) { console.warn('[OCR Speedtest] Failed:', e); }
                 return extracted;
             }
 
