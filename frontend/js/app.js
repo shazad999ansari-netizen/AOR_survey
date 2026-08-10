@@ -1190,15 +1190,15 @@ class FieldPortalApp {
                         } catch (e) { return null; }
                     };
 
-                    // 1. Download Box Digit Crop (Precision: x: 16%-48% excludes icons/labels, Top: 7%-19%)
-                    dl = await extractFromCrop(0.16, 0.07, 0.32, 0.12);
-                    if (dl === null) dl = await extractFromCrop(0.16, 0.10, 0.32, 0.12);
-                    if (dl === null) dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12); // Wide fallback
+                    // 1. Download Box Speed Digits ONLY (y: 11.8% to 17.8% — EXCLUDES "Download" label & "Mbps" text!)
+                    dl = await extractFromCrop(0.04, 0.118, 0.44, 0.060);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.108, 0.44, 0.060);
+                    if (dl === null) dl = await extractFromCrop(0.16, 0.118, 0.32, 0.060);
 
-                    // 2. Upload Box Digit Crop (Precision: x: 60%-94% excludes icons/labels, Top: 7%-19%)
-                    ul = await extractFromCrop(0.60, 0.07, 0.34, 0.12);
-                    if (ul === null) ul = await extractFromCrop(0.60, 0.10, 0.34, 0.12);
-                    if (ul === null) ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12); // Wide fallback
+                    // 2. Upload Box Speed Digits ONLY (y: 11.8% to 17.8% — EXCLUDES "Upload" label & "Mbps" text!)
+                    ul = await extractFromCrop(0.52, 0.118, 0.44, 0.060);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.108, 0.44, 0.060);
+                    if (ul === null) ul = await extractFromCrop(0.60, 0.118, 0.34, 0.060);
 
                     // 3. Fallback: Full text scan if crops returned nothing
                     if (dl === null || ul === null) {
