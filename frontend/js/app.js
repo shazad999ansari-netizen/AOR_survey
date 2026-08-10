@@ -308,9 +308,11 @@ class FieldPortalApp {
         });
     }
 
-    fillDemo(mobileNumber) {
+    async fillDemo(mobileNumber) {
         document.getElementById('auth-mobile').value = mobileNumber;
-        this.showToast(`Test mobile number set to ${mobileNumber}`, 'success');
+        this.showToast(`Logging in as ${mobileNumber}...`, 'info');
+        await this.requestOTP();
+        await this.verifyOTP();
     }
 
     checkExistingAuth() {
