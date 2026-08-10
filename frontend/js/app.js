@@ -866,7 +866,7 @@ class FieldPortalApp {
         this.updateSurveyProgress();
     }
 
-    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, invertColors = false) {
+    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, applyBinarization = true) {
         return new Promise((resolve) => {
             try {
                 const img = new Image();
@@ -878,17 +878,36 @@ class FieldPortalApp {
                         const cropW = Math.floor(img.width * wRatio);
                         const cropH = Math.floor(img.height * hRatio);
 
-                        // 3x Upscale for maximum resolution on decimal points
-                        canvas.width = Math.max(cropW * 3, 30);
-                        canvas.height = Math.max(cropH * 3, 30);
+                        const scale = 3.0;
+                        const targetW = Math.floor(cropW * scale);
+                        const targetH = Math.floor(cropH * scale);
+                        const padding = 20;
+
+                        canvas.width = targetW + padding * 2;
+                        canvas.height = targetH + padding * 2;
                         const ctx = canvas.getContext('2d');
+
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
                         ctx.imageSmoothingEnabled = true;
                         ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, startX, startY, cropW, cropH, padding, padding, targetW, targetH);
 
-                        if (invertColors) {
-                            ctx.filter = 'invert(100%) grayscale(100%)';
+                        if (applyBinarization) {
+                            // Converts white text on dark background into crisp black text on pure white canvas
+                            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const d = imgData.data;
+                            for (let i = 0; i < d.length; i += 4) {
+                                const lum = (d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
+                                const val = lum > 135 ? 0 : 255;
+                                d[i] = val;
+                                d[i+1] = val;
+                                d[i+2] = val;
+                            }
+                            ctx.putImageData(imgData, 0, 0);
                         }
-                        ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
                         canvas.toBlob((blob) => {
                             resolve(blob || file);
                         }, 'image/jpeg');
@@ -918,29 +937,29 @@ class FieldPortalApp {
 
                     const extractFromCrop = async (xR, yR, wR, hR) => {
                         try {
-                            const processNums = (rawTxt) => {
-                                let cleaned = rawTxt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
-                                return [...cleaned.matchAll(/(\d+(?:\.\d+)?)/g)]
-                                    .map(m => {
-                                        let v = parseFloat(m[1]);
-                                        if (v > 100 && v < 1000 && Number.isInteger(v)) {
-                                            v = parseFloat((v / 10.0).toFixed(2));
-                                        }
-                                        return v;
-                                    })
-                                    .filter(v => v >= 0.1 && v < 5000);
+                            const ocrOpts = {
+                                tessedit_char_whitelist: '0123456789.',
+                                tessedit_pageseg_mode: '7'
                             };
 
-                            // Try 1: 3x Non-inverted crop (crisp native white text on dark background)
-                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false);
-                            let res = await Tesseract.recognize(blob, 'eng');
-                            let nums = processNums(res?.data?.text || '');
+                            // Try 1: Crisp Binarized Black-on-White crop with 20px padding & 3x scale
+                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
+                            let res = await Tesseract.recognize(blob, 'eng', ocrOpts);
+                            let rawTxt = res?.data?.text || '';
+                            let cleaned = rawTxt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
+                            let nums = [...cleaned.matchAll(/(\d+(?:\.\d+)?)/g)]
+                                .map(m => parseFloat(m[1]))
+                                .filter(v => v >= 0.1 && v < 5000);
                             if (nums.length > 0) return nums[0];
 
-                            // Try 2: 3x Inverted crop
-                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
-                            res = await Tesseract.recognize(blob, 'eng');
-                            nums = processNums(res?.data?.text || '');
+                            // Try 2: Standard 3x crop fallback
+                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false);
+                            res = await Tesseract.recognize(blob, 'eng', ocrOpts);
+                            rawTxt = res?.data?.text || '';
+                            cleaned = rawTxt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
+                            nums = [...cleaned.matchAll(/(\d+(?:\.\d+)?)/g)]
+                                .map(m => parseFloat(m[1]))
+                                .filter(v => v >= 0.1 && v < 5000);
                             if (nums.length > 0) return nums[0];
 
                             return null;
@@ -1002,18 +1021,6 @@ class FieldPortalApp {
                             }
                         }
                     }
-
-                    // Direct Sanitize: Maps Ookla font misread variations (217, 21.7, 21, 270) directly to exact 27.0
-                    const sanitizeSpeed = (val) => {
-                        if (val === null || val === undefined) return null;
-                        if (val === 217 || val === 217.0 || val === 21.7 || val === 21 || val === 21.0 || val === 270 || val === 270.0) {
-                            return 27.0;
-                        }
-                        return val;
-                    };
-
-                    dl = sanitizeSpeed(dl);
-                    ul = sanitizeSpeed(ul);
 
                     if (dl !== null) extracted.dl_mb = dl;
                     if (ul !== null) extracted.ul_mb = ul;
