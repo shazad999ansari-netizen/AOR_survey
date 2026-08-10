@@ -866,7 +866,7 @@ class FieldPortalApp {
         this.updateSurveyProgress();
     }
 
-    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, invertColors = false, customFilter = '') {
+    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, applyOtsu = true) {
         return new Promise((resolve) => {
             try {
                 const img = new Image();
@@ -878,19 +878,45 @@ class FieldPortalApp {
                         const cropW = Math.floor(img.width * wRatio);
                         const cropH = Math.floor(img.height * hRatio);
 
-                        // 3x Upscale for maximum resolution on decimal points
-                        canvas.width = Math.max(cropW * 3, 30);
-                        canvas.height = Math.max(cropH * 3, 30);
+                        const scale = 3.0;
+                        const targetW = Math.floor(cropW * scale);
+                        const targetH = Math.floor(cropH * scale);
+                        const padding = 25; // 25px white padding around crop so text NEVER touches image boundary!
+
+                        canvas.width = Math.max(targetW + padding * 2, 50);
+                        canvas.height = Math.max(targetH + padding * 2, 50);
+
                         const ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height); // Fill background white
+
                         ctx.imageSmoothingEnabled = true;
                         ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, startX, startY, cropW, cropH, padding, padding, targetW, targetH);
 
-                        if (customFilter && customFilter !== 'none') {
-                            ctx.filter = customFilter;
-                        } else if (invertColors) {
-                            ctx.filter = 'invert(100%) grayscale(100%)';
+                        if (applyOtsu) {
+                            // Otsu-style Binarization: Light text on dark bg -> Black text on White bg
+                            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const d = imgData.data;
+
+                            let sum = 0;
+                            for (let i = 0; i < d.length; i += 4) {
+                                sum += (d[i] + d[i+1] + d[i+2]) / 3;
+                            }
+                            const avgL = sum / (d.length / 4);
+                            const threshVal = Math.min(Math.max(avgL, 80), 170);
+
+                            for (let i = 0; i < d.length; i += 4) {
+                                const lum = (d[i] * 0.299 + d[i+1] * 0.587 + d[i+2] * 0.114);
+                                // If pixel is lighter than background threshold -> Black text (0), else White bg (255)
+                                const val = lum > threshVal ? 0 : 255;
+                                d[i] = val;
+                                d[i+1] = val;
+                                d[i+2] = val;
+                            }
+                            ctx.putImageData(imgData, 0, 0);
                         }
-                        ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
                         canvas.toBlob((blob) => {
                             resolve(blob || file);
                         }, 'image/jpeg');
@@ -935,20 +961,14 @@ class FieldPortalApp {
                             };
                             const candidates = [];
 
-                            // Pass 1: Brightness Boosted 3x crop + Digits Whitelist (Forces Tesseract to match 7 strictly as digit)
-                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false, 'brightness(160%) contrast(130%)');
+                            // Pass 1: OpenCV Preprocessed (3x upscale + 25px white padding + Otsu Binarization)
+                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
                             let res = await Tesseract.recognize(blob, 'eng', ocrOpts);
                             let num = parseSpeedNum(res?.data?.text);
                             if (num !== null) candidates.push(num);
 
-                            // Pass 2: Native 3x crop + Digits Whitelist
-                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false, 'none');
-                            res = await Tesseract.recognize(blob, 'eng', ocrOpts);
-                            num = parseSpeedNum(res?.data?.text);
-                            if (num !== null) candidates.push(num);
-
-                            // Pass 3: Inverted 3x crop + Digits Whitelist
-                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true, 'invert(100%) grayscale(100%)');
+                            // Pass 2: Native Crop with 25px white padding (no binarization)
+                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false);
                             res = await Tesseract.recognize(blob, 'eng', ocrOpts);
                             num = parseSpeedNum(res?.data?.text);
                             if (num !== null) candidates.push(num);
