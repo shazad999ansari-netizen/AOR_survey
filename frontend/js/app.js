@@ -878,13 +878,15 @@ class FieldPortalApp {
                         const cropW = Math.floor(img.width * wRatio);
                         const cropH = Math.floor(img.height * hRatio);
 
-                        // 2x Upscale for crisp OCR text
-                        canvas.width = Math.max(cropW * 2, 20);
-                        canvas.height = Math.max(cropH * 2, 20);
+                        // 3x Upscale for maximum resolution on decimal points
+                        canvas.width = Math.max(cropW * 3, 30);
+                        canvas.height = Math.max(cropH * 3, 30);
                         const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
 
                         if (invertColors) {
-                            ctx.filter = 'invert(100%) grayscale(100%) contrast(200%)';
+                            ctx.filter = 'invert(100%) grayscale(100%)';
                         }
                         ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, canvas.width, canvas.height);
                         canvas.toBlob((blob) => {
@@ -914,37 +916,44 @@ class FieldPortalApp {
                 try {
                     let dl = null, ul = null;
 
-                    const extractFromCrop = async (xR, yR, wR, hR, inv) => {
+                    const extractFromCrop = async (xR, yR, wR, hR) => {
                         try {
-                            const blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, inv);
-                            const res = await Tesseract.recognize(blob, 'eng');
-                            let txt = res?.data?.text || '';
-                            txt = txt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
-                            const nums = [...txt.matchAll(/(\d+(?:\.\d+)?)/g)]
-                                .map(m => {
-                                    let v = parseFloat(m[1]);
-                                    // If integer > 100 and < 1000 (e.g. 217 misread for 21.7), auto-insert decimal
-                                    if (v > 100 && v < 1000 && Number.isInteger(v)) {
-                                        v = parseFloat((v / 10.0).toFixed(2));
-                                    }
-                                    return v;
-                                })
-                                .filter(v => v >= 0.1 && v < 5000);
-                            return nums.length > 0 ? nums[0] : null;
+                            const processNums = (rawTxt) => {
+                                let cleaned = rawTxt.replace(/O/g, '0').replace(/(\d+)[,\s]+(\d{1,2})\b/g, '$1.$2');
+                                return [...cleaned.matchAll(/(\d+(?:\.\d+)?)/g)]
+                                    .map(m => {
+                                        let v = parseFloat(m[1]);
+                                        if (v > 100 && v < 1000 && Number.isInteger(v)) {
+                                            v = parseFloat((v / 10.0).toFixed(2));
+                                        }
+                                        return v;
+                                    })
+                                    .filter(v => v >= 0.1 && v < 5000);
+                            };
+
+                            // Try 1: 3x Non-inverted crop (crisp native white text on dark background)
+                            let blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, false);
+                            let res = await Tesseract.recognize(blob, 'eng');
+                            let nums = processNums(res?.data?.text || '');
+                            if (nums.length > 0) return nums[0];
+
+                            // Try 2: 3x Inverted crop
+                            blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, true);
+                            res = await Tesseract.recognize(blob, 'eng');
+                            nums = processNums(res?.data?.text || '');
+                            if (nums.length > 0) return nums[0];
+
+                            return null;
                         } catch (e) { return null; }
                     };
 
                     // 1. Download Box Crop (Left: 4%-48%, Top: 7%-19% - stops before Ping at 20%)
-                    dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, true);
-                    if (dl === null) dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, false);
-                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12, true);
-                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12, false);
+                    dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12);
 
                     // 2. Upload Box Crop (Right: 52%-96%, Top: 7%-19% - stops before Ping at 20%)
-                    ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, true);
-                    if (ul === null) ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, false);
-                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12, true);
-                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12, false);
+                    ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12);
 
                     // 3. Fallback: Full text scan if crops returned nothing
                     if (dl === null || ul === null) {
