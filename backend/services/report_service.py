@@ -100,7 +100,8 @@ class ReportService:
             }
             prepared_hotspots.append(h_dict)
 
-        date_str = (survey.created_at or datetime.now(timezone.utc)).strftime("%B %d, %Y - %H:%M UTC")
+        dt_obj = survey.created_at or datetime.now(timezone.utc)
+        date_str = dt_obj.strftime("%d %B %Y at %I:%M %p UTC")
 
         html_out = template.render(
             survey=survey,

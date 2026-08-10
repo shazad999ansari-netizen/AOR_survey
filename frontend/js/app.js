@@ -711,7 +711,9 @@ class FieldPortalApp {
         if (this.latitude && this.longitude) {
             summaryText += `📍 *GPS:* ${this.latitude.toFixed(4)}° N, ${this.longitude.toFixed(4)}° E (https://maps.google.com/?q=${this.latitude},${this.longitude})\n`;
         }
-        summaryText += `📅 *Date:* ${new Date().toLocaleDateString()}\n`;
+        const now = new Date();
+        const dateTimeStr = now.toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+        summaryText += `📅 *Date & Time:* ${dateTimeStr}\n`;
         summaryText += `🔧 *Hardware Status:*\n`;
         summaryText += `   • Repeater Installed: ${repPres} | Operational: ${repWork}\n`;
         summaryText += `   • 5G Small Cell Installed: ${scPres} | Operational: ${scWork}\n`;
