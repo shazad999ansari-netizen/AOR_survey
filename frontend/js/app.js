@@ -1819,4 +1819,6 @@ class FieldPortalApp {
     }
 }
 
-const app = new FieldPortalApp();
+// Explicitly bind app instance to global window object for inline HTML event handlers
+window.app = new FieldPortalApp();
+var app = window.app;
