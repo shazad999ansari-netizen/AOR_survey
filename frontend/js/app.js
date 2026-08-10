@@ -866,7 +866,7 @@ class FieldPortalApp {
         this.updateSurveyProgress();
     }
 
-    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio) {
+    async cropRegionOfImage(file, xRatio, yRatio, wRatio, hRatio, invertColors = false) {
         return new Promise((resolve) => {
             try {
                 const img = new Image();
@@ -878,10 +878,15 @@ class FieldPortalApp {
                         const cropW = Math.floor(img.width * wRatio);
                         const cropH = Math.floor(img.height * hRatio);
 
-                        canvas.width = Math.max(cropW, 10);
-                        canvas.height = Math.max(cropH, 10);
+                        // 2x Upscale for crisp OCR text
+                        canvas.width = Math.max(cropW * 2, 20);
+                        canvas.height = Math.max(cropH * 2, 20);
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, cropW, cropH);
+
+                        if (invertColors) {
+                            ctx.filter = 'invert(100%) grayscale(100%) contrast(200%)';
+                        }
+                        ctx.drawImage(img, startX, startY, cropW, cropH, 0, 0, canvas.width, canvas.height);
                         canvas.toBlob((blob) => {
                             resolve(blob || file);
                         }, 'image/jpeg');
@@ -904,49 +909,79 @@ class FieldPortalApp {
 
             const extracted = {};
 
-            // ===== SPEEDTEST MODE: Line-by-line parser =====
+            // ===== SPEEDTEST MODE: Precision box crop first (x: 4..48%, y: 7..19%), then fallback =====
             if (mode === 'speedtest') {
                 try {
-                    const resultFull = await Tesseract.recognize(file, 'eng');
-                    const rawText = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
-
-                    // Split into cleaned non-empty lines
-                    const lines = rawText.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
-                    let dlLineIdx = -1, ulLineIdx = -1, pingLineIdx = lines.length;
-
-                    for (let i = 0; i < lines.length; i++) {
-                        if (/download/i.test(lines[i]) && dlLineIdx === -1) dlLineIdx = i;
-                        if (/upload/i.test(lines[i]) && ulLineIdx === -1) ulLineIdx = i;
-                        if (/ping/i.test(lines[i])) { pingLineIdx = i; break; }
-                    }
-
-                    const getNums = (line) =>
-                        [...line.matchAll(/(\d+(?:\.\d+)?)/g)]
-                            .map(m => parseFloat(m[1]))
-                            .filter(v => v > 0 && v < 10000);
-
                     let dl = null, ul = null;
 
-                    if (dlLineIdx >= 0 && ulLineIdx >= 0 && dlLineIdx < pingLineIdx && ulLineIdx < pingLineIdx) {
-                        if (dlLineIdx === ulLineIdx) {
-                            // COLUMN LAYOUT: both labels on same line, numbers on next line(s)
-                            for (let j = dlLineIdx + 1; j < pingLineIdx; j++) {
-                                const nums = getNums(lines[j]);
-                                if (nums.length >= 2) { dl = nums[0]; ul = nums[1]; break; }
-                                else if (nums.length === 1) {
-                                    if (dl === null) dl = nums[0];
-                                    else { ul = nums[0]; break; }
+                    const extractFromCrop = async (xR, yR, wR, hR, inv) => {
+                        try {
+                            const blob = await this.cropRegionOfImage(file, xR, yR, wR, hR, inv);
+                            const res = await Tesseract.recognize(blob, 'eng');
+                            const txt = res?.data?.text || '';
+                            const nums = [...txt.matchAll(/(\d+(?:\.\d+)?)/g)]
+                                .map(m => parseFloat(m[1]))
+                                .filter(v => v >= 0.1 && v < 5000);
+                            return nums.length > 0 ? nums[0] : null;
+                        } catch (e) { return null; }
+                    };
+
+                    // 1. Download Box Crop (Left: 4%-48%, Top: 7%-19% - stops before Ping at 20%)
+                    dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, true);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12, false);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12, true);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12, false);
+
+                    // 2. Upload Box Crop (Right: 52%-96%, Top: 7%-19% - stops before Ping at 20%)
+                    ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, true);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12, false);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12, true);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12, false);
+
+                    // 3. Fallback: Full text scan if crops returned nothing
+                    if (dl === null || ul === null) {
+                        const resultFull = await Tesseract.recognize(file, 'eng');
+                        const rawText = (resultFull && resultFull.data && resultFull.data.text) ? resultFull.data.text : '';
+                        const lines = rawText.split(/\n/).map(l => l.trim()).filter(l => l.length > 0);
+                        let dlLineIdx = -1, ulLineIdx = -1, pingLineIdx = lines.length;
+
+                        for (let i = 0; i < lines.length; i++) {
+                            if (/download/i.test(lines[i]) && dlLineIdx === -1) dlLineIdx = i;
+                            if (/upload/i.test(lines[i]) && ulLineIdx === -1) ulLineIdx = i;
+                            if (/ping/i.test(lines[i])) { pingLineIdx = i; break; }
+                        }
+
+                        const getNums = (line) =>
+                            [...line.matchAll(/(\d+(?:\.\d+)?)/g)]
+                                .map(m => parseFloat(m[1]))
+                                .filter(v => v > 0 && v < 5000);
+
+                        if (dlLineIdx >= 0 && ulLineIdx >= 0 && dlLineIdx < pingLineIdx && ulLineIdx < pingLineIdx) {
+                            if (dlLineIdx === ulLineIdx) {
+                                for (let j = dlLineIdx + 1; j < pingLineIdx; j++) {
+                                    const nums = getNums(lines[j]);
+                                    if (nums.length >= 2) {
+                                        if (dl === null) dl = nums[0];
+                                        if (ul === null) ul = nums[1];
+                                        break;
+                                    } else if (nums.length === 1) {
+                                        if (dl === null) dl = nums[0];
+                                        else if (ul === null) { ul = nums[0]; break; }
+                                    }
                                 }
-                            }
-                        } else if (dlLineIdx < ulLineIdx) {
-                            // VERTICAL LAYOUT: Download line then Upload line
-                            for (let j = dlLineIdx + 1; j < ulLineIdx && j < pingLineIdx; j++) {
-                                const nums = getNums(lines[j]);
-                                if (nums.length > 0) { dl = nums[0]; break; }
-                            }
-                            for (let j = ulLineIdx + 1; j < pingLineIdx; j++) {
-                                const nums = getNums(lines[j]);
-                                if (nums.length > 0) { ul = nums[0]; break; }
+                            } else if (dlLineIdx < ulLineIdx) {
+                                if (dl === null) {
+                                    for (let j = dlLineIdx + 1; j < ulLineIdx && j < pingLineIdx; j++) {
+                                        const nums = getNums(lines[j]);
+                                        if (nums.length > 0) { dl = nums[0]; break; }
+                                    }
+                                }
+                                if (ul === null) {
+                                    for (let j = ulLineIdx + 1; j < pingLineIdx; j++) {
+                                        const nums = getNums(lines[j]);
+                                        if (nums.length > 0) { ul = nums[0]; break; }
+                                    }
+                                }
                             }
                         }
                     }
@@ -954,31 +989,7 @@ class FieldPortalApp {
                     if (dl !== null) extracted.dl_mb = dl;
                     if (ul !== null) extracted.ul_mb = ul;
 
-                    // === CROP FALLBACK: If line-by-line missed numbers (stylized fonts in rounded boxes) ===
-                    if (dl === null || ul === null) {
-                        try {
-                            // Crop left 50% for Download speed (y: 10% to 37%)
-                            if (dl === null) {
-                                const dlBlob = await this.cropRegionOfImage(file, 0.02, 0.10, 0.48, 0.27);
-                                const dlRes = await Tesseract.recognize(dlBlob, 'eng');
-                                const dlText = dlRes?.data?.text || '';
-                                const dlNums = [...dlText.matchAll(/(\d+(?:\.\d+)?)/g)]
-                                    .map(m => parseFloat(m[1])).filter(v => v >= 0.5 && v <= 999);
-                                if (dlNums.length > 0) { dl = dlNums[0]; extracted.dl_mb = dl; }
-                            }
-                            // Crop right 50% for Upload speed (y: 10% to 37%)
-                            if (ul === null) {
-                                const ulBlob = await this.cropRegionOfImage(file, 0.50, 0.10, 0.48, 0.27);
-                                const ulRes = await Tesseract.recognize(ulBlob, 'eng');
-                                const ulText = ulRes?.data?.text || '';
-                                const ulNums = [...ulText.matchAll(/(\d+(?:\.\d+)?)/g)]
-                                    .map(m => parseFloat(m[1])).filter(v => v >= 0.5 && v <= 999);
-                                if (ulNums.length > 0) { ul = ulNums[0]; extracted.ul_mb = ul; }
-                            }
-                        } catch (ce) { console.warn('[OCR Crop Fallback]', ce); }
-                    }
-
-                    const dbg = `v44|dl=${dlLineIdx}|ul=${ulLineIdx}|ping=${pingLineIdx}|DL=${dl}|UL=${ul}`;
+                    const dbg = `v45 | DL=${dl ?? 'null'} | UL=${ul ?? 'null'}`;
                     console.log('[OCR Speedtest]', dbg);
                     if (typeof app !== 'undefined' && app.showToast) app.showToast(dbg, 'info', 8000);
 
