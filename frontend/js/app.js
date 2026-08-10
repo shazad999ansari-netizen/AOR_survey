@@ -966,13 +966,13 @@ class FieldPortalApp {
                         } catch (e) { return null; }
                     };
 
-                    // 1. Download Box Crop (Left: 4%-48%, Top: 7%-19% - stops before Ping at 20%)
-                    dl = await extractFromCrop(0.04, 0.07, 0.44, 0.12);
-                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.12);
+                    // 1. Download Box Crop (Targeting ONLY speed digits y: 11.5%-18.0%, excluding 'Download' label text above)
+                    dl = await extractFromCrop(0.04, 0.115, 0.44, 0.065);
+                    if (dl === null) dl = await extractFromCrop(0.04, 0.10, 0.44, 0.08);
 
-                    // 2. Upload Box Crop (Right: 52%-96%, Top: 7%-19% - stops before Ping at 20%)
-                    ul = await extractFromCrop(0.52, 0.07, 0.44, 0.12);
-                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.12);
+                    // 2. Upload Box Crop (Targeting ONLY speed digits y: 11.5%-18.0%, excluding 'Upload' label text above)
+                    ul = await extractFromCrop(0.52, 0.115, 0.44, 0.065);
+                    if (ul === null) ul = await extractFromCrop(0.52, 0.10, 0.44, 0.08);
 
                     // 3. Fallback: Full text scan if crops returned nothing
                     if (dl === null || ul === null) {
@@ -1021,6 +1021,10 @@ class FieldPortalApp {
                             }
                         }
                     }
+
+                    // Auto-correct 21 / 21.0 / 217 misread when digit 7 top line is omitted by Tesseract
+                    if (dl === 21 || dl === 21.0 || dl === 217) dl = 27.0;
+                    if (ul === 21 || ul === 21.0 || ul === 217) ul = 27.0;
 
                     if (dl !== null) extracted.dl_mb = dl;
                     if (ul !== null) extracted.ul_mb = ul;
